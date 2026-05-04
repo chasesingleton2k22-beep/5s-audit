@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>5S Audit — TAG Mfg Plant 2</title>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+:root {
+  --navy:    #0f1f3d;
+  --navy2:   #1a2f52;
+  --navy3:   #243d68;
+  --amber:   #f59e0b;
+  --amber2:  #d97706;
+  --amber3:  #fef3c7;
+  --surface: #f0f4f8;
+  --card:    #ffffff;
+  --border:  #d1dce8;
+  --text:    #1a2744;
+  --muted:   #5b7290;
+  --red:     #dc2626;
+  --green:   #16a34a;
+
+  --sort-bg:  #0f2d4a;
+  --set-bg:   #0d3528;
+  --shine-bg: #2d2d2d;
+  --std-bg:   #2e1b5e;
+  --sus-bg:   #5c1a0a;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { height: 100%; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--surface);
+  color: var(--text);
+  min-height: 100%;
+  padding-bottom: 72px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── APP HEADER ─────────────────────────────────── */
+.app-bar {
+  background: var(--navy);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 0 2px 12px rgba(0,0,0,.35);
+}
+.app-bar-inner {
+  padding: 12px 16px 0;
+}
+.app-bar h1 {
+  font-size: .8rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+.app-bar p {
+  font-size: .7rem;
+  color: rgba(255,255,255,.55);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+.tabs {
+  display: flex;
+  margin-top: 10px;
+}
+.tab {
+  flex: 1;
+  padding: 9px 0;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: rgba(255,255,255,.5);
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+/* ── VIEWS ──────────────────────────────────────── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── FORM WRAPPER ───────────────────────────────── */
+.form-wrap { padding: 14px; }
+
+/* ── CARDS ──────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.card-head {
+  padding: 11px 14px;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  background: #f8fafc;
+}
+
+/* ── LEGEND ─────────────────────────────────────── */
+.legend-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px;
+}
+.legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: .78rem;
+  line-height: 1.35;
+  color: var(--text);
+}
+.score-chip {
+  min-width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .85rem;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+}
+.c0 { background: #6b0f0f; }
+.c1 { background: #b91c1c; }
+.c2 { background: #d97706; }
+.c3 { background: #2563eb; }
+.c4 { background: #16a34a; }
+.c5 { background: #065f46; }
+.legend-text strong { display: block; font-size: .75rem; }
+
+/* ── FORM FIELDS ─────────────────────────────────── */
+.field-pad { padding: 12px; }
+.field { margin-bottom: 10px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.field select,
+.field input[type="text"],
+.field input[type="date"],
+.field input[type="time"] {
+  width: 100%;
+  padding: 12px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: .95rem;
+  background: var(--surface);
+  color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
+  line-height: 1.2;
+}
+.field select:focus,
+.field input:focus {
+  outline: none;
+  border-color: var(--amber);
+  background: #fff;
+}
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── SECTION CARDS ──────────────────────────────── */
+.section-card {
+  border-radius: 12px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,.12);
+}
+.section-hd {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 16px;
+  color: #fff;
+}
+.section-hd h3 {
+  font-size: .82rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.section-badge {
+  background: rgba(255,255,255,.18);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: .8rem;
+  font-weight: 700;
+}
+.sec-sort  .section-hd { background: var(--sort-bg); }
+.sec-set   .section-hd { background: var(--set-bg);  }
+.sec-shine .section-hd { background: var(--shine-bg); }
+.sec-std   .section-hd { background: var(--std-bg);  }
+.sec-sus   .section-hd { background: var(--sus-bg);  }
+
+/* ── AUDIT ITEM ─────────────────────────────────── */
+.audit-item {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 13px 14px;
+}
+.audit-item:last-child { border-bottom: none; }
+.item-num {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.item-label {
+  font-size: .88rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+/* ── SCORE BUTTONS ──────────────────────────────── */
+.score-row {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 9px;
+}
+.score-btn {
+  flex: 1;
+  height: 46px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background .12s, border-color .12s, color .12s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.score-btn:active { transform: scale(.93); }
+
+.score-btn.sel-0 { background: #6b0f0f; border-color: #6b0f0f; color: #fff; }
+.score-btn.sel-1 { background: #b91c1c; border-color: #b91c1c; color: #fff; }
+.score-btn.sel-2 { background: #d97706; border-color: #d97706; color: #fff; }
+.score-btn.sel-3 { background: #2563eb; border-color: #2563eb; color: #fff; }
+.score-btn.sel-4 { background: #16a34a; border-color: #16a34a; color: #fff; }
+.score-btn.sel-5 { background: #065f46; border-color: #065f46; color: #fff; }
+
+/* ── REMARKS ────────────────────────────────────── */
+.remarks-lbl {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.remarks-input {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: .85rem;
+  color: var(--text);
+  background: var(--surface);
+  resize: none;
+  min-height: 56px;
+  font-family: inherit;
+  line-height: 1.4;
+}
+.remarks-input:focus {
+  outline: none;
+  border-color: var(--amber);
+  background: #fff;
+}
+
+/* ── TOTAL SCORE BAR ────────────────────────────── */
+.total-box {
+  background: var(--navy);
+  border-radius: 14px;
+  padding: 20px 18px;
+  margin-bottom: 14px;
+  text-align: center;
+  color: #fff;
+}
+.total-lbl {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.55);
+  margin-bottom: 6px;
+}
+.total-num {
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: var(--amber);
+  line-height: 1;
+}
+.total-denom { font-size: 1.1rem; color: rgba(255,255,255,.4); }
+.bar-wrap {
+  background: rgba(255,255,255,.14);
+  border-radius: 99px;
+  height: 9px;
+  margin: 10px 0 6px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--amber);
+  border-radius: 99px;
+  transition: width .3s ease;
+}
+.total-pct { font-size: .85rem; color: rgba(255,255,255,.6); }
+
+/* ── ACTION BUTTONS ─────────────────────────────── */
+.btn-row { display: flex; gap: 10px; margin-bottom: 12px; }
+.btn {
+  flex: 1;
+  padding: 15px 10px;
+  border: none;
+  border-radius: 10px;
+  font-size: .88rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.btn:active { transform: scale(.97); }
+.btn-amber  { background: var(--amber); color: var(--navy); }
+.btn-amber:hover { background: var(--amber2); }
+.btn-navy   { background: var(--navy); color: #fff; }
+.btn-red    { background: var(--red); color: #fff; }
+.btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text); }
+
+/* ── HISTORY ────────────────────────────────────── */
+.hist-wrap { padding: 14px; }
+.hist-empty {
+  text-align: center;
+  padding: 56px 24px;
+  color: var(--muted);
+}
+.hist-empty .icon { font-size: 2.8rem; margin-bottom: 10px; }
+.hist-empty p { font-size: .9rem; line-height: 1.5; }
+
+.hist-card {
+  background: var(--card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.hist-card-top {
+  padding: 13px 14px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.hist-dept { font-size: 1rem; font-weight: 800; color: var(--navy); }
+.hist-score-pill {
+  flex-shrink: 0;
+  background: var(--amber3);
+  color: var(--amber2);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: .8rem;
+  font-weight: 800;
+}
+.hist-meta {
+  font-size: .77rem;
+  color: var(--muted);
+  padding: 0 14px 12px;
+  line-height: 1.5;
+}
+.hist-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px 14px 13px;
+  border-top: 1px solid var(--border);
+  background: #f8fafc;
+}
+.btn-sm {
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.btn-sm-amber  { background: var(--amber); color: var(--navy); }
+.btn-sm-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+.btn-sm-red    { background: #fee2e2; color: var(--red); }
+
+/* ── DIALOG OVERLAY ─────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.overlay.hidden { display: none; }
+.dialog {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 340px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0,0,0,.3);
+}
+.dialog h3 { font-size: 1rem; font-weight: 800; color: var(--navy); margin-bottom: 8px; }
+.dialog p  { font-size: .875rem; color: var(--muted); line-height: 1.5; margin-bottom: 20px; }
+.dialog-btns { display: flex; gap: 10px; }
+
+/* ── TOAST ──────────────────────────────────────── */
+.toast {
+  position: fixed;
+  bottom: 82px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--navy);
+  color: #fff;
+  padding: 11px 20px;
+  border-radius: 10px;
+  font-size: .875rem;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s, transform .22s;
+  z-index: 300;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0,0,0,.3);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.ok    { background: #065f46; }
+.toast.err   { background: var(--red); }
+
+/* ── PLACEHOLDER ────────────────────────────────── */
+.pick-dept {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.6;
+}
+.pick-dept .icon { font-size: 2.4rem; margin-bottom: 10px; }
+
+@media (max-width: 360px) {
+  .score-btn { height: 42px; font-size: .95rem; }
+  .legend-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ APP BAR ══════════════ -->
+<div class="app-bar">
+  <div class="app-bar-inner">
+    <h1>5S Audit System</h1>
+    <p>TAG Manufacturing — Plant 2</p>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="audit" onclick="switchTab('audit')">New Audit</button>
+    <button class="tab" data-tab="history" onclick="switchTab('history')">History</button>
+  </div>
+</div>
+
+<!-- ══════════════ AUDIT VIEW ══════════════ -->
+<div id="view-audit" class="view active">
+  <div class="form-wrap">
+
+    <!-- Legend -->
+    <div class="card">
+      <div class="card-head">Scoring Legend</div>
+      <div class="legend-grid">
+        <div class="legend-item"><span class="score-chip c0">0</span><span class="legend-text"><strong>Missing</strong>No 5S evidence. Cluttered &amp; unsafe.</span></div>
+        <div class="legend-item"><span class="score-chip c1">1</span><span class="legend-text"><strong>Poor</strong>Free of debris only. No organization.</span></div>
+        <div class="legend-item"><span class="score-chip c2">2</span><span class="legend-text"><strong>Fair</strong>Minimal effort, inconsistent.</span></div>
+        <div class="legend-item"><span class="score-chip c3">3</span><span class="legend-text"><strong>Meets Expect.</strong>In place, not fully standardized.</span></div>
+        <div class="legend-item"><span class="score-chip c4">4</span><span class="legend-text"><strong>Good</strong>Well organized, minor gaps.</span></div>
+        <div class="legend-item"><span class="score-chip c5">5</span><span class="legend-text"><strong>Excellent</strong>Full 5S, neat, standardized.</span></div>
+      </div>
+    </div>
+
+    <!-- Audit Header -->
+    <div class="card">
+      <div class="card-head">Audit Information</div>
+      <div class="field-pad">
+        <div class="field">
+          <label>Department</label>
+          <select id="f-dept" onchange="onDeptChange()">
+            <option value="">— Select Department —</option>
+            <optgroup label="Standard">
+              <option>Shipping</option>
+              <option>Assembly</option>
+              <option>Maintenance</option>
+              <option>Saw</option>
+              <option>Press and Strip Tables</option>
+              <option>Continuous Improvement</option>
+              <option>Machine Shop</option>
+              <option>Install</option>
+              <option>Kitting</option>
+            </optgroup>
+            <optgroup label="Weld">
+              <option>Couplers</option>
+              <option>Thumbs</option>
+              <option>QH Bucket</option>
+              <option>Pin On Bucket</option>
+              <option>Specialty Bucket</option>
+              <option>Cobot</option>
+            </optgroup>
+            <optgroup label="Paint">
+              <option>Paint</option>
+            </optgroup>
+            <optgroup label="Burn Bay">
+              <option>Burn Bay 1</option>
+              <option>Burn Bay 2</option>
+              <option>Burn Bay 3</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="field">
+          <label>Auditor</label>
+          <input type="text" id="f-auditor" value="Chase S.">
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="f-date">
+          </div>
+          <div class="field">
+            <label>Time</label>
+            <input type="time" id="f-time">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dynamic sections rendered here -->
+    <div id="sections-container">
+      <div class="pick-dept">
+        <div class="icon">📋</div>
+        <p>Select a department above<br>to load the audit checklist.</p>
+      </div>
+    </div>
+
+    <!-- Total Score (hidden until dept selected) -->
+    <div class="total-box" id="total-box" style="display:none">
+      <div style="display:flex;justify-content:space-around;align-items:center;gap:16px">
+        <div style="text-align:center">
+          <div class="total-lbl">Total</div>
+          <div class="total-num" id="t-num">0</div>
+        </div>
+        <div style="width:1px;height:48px;background:rgba(255,255,255,.2)"></div>
+        <div style="text-align:center">
+          <div class="total-lbl">Overall Score</div>
+          <div class="total-num" id="t-avg">0.0</div>
+          <div style="font-size:.72rem;color:rgba(255,255,255,.5);margin-top:2px">out of 5</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="btn-row" id="btn-row" style="display:none">
+      <button class="btn btn-outline" onclick="confirmClear()">Clear</button>
+      <button class="btn btn-navy"  onclick="saveAudit()">Save Audit</button>
+    </div>
+    <div class="btn-row" id="export-row" style="display:none">
+      <button class="btn btn-amber" onclick="exportCurrent()">Export to Excel</button>
+    </div>
+    <div class="btn-row" id="new-audit-row" style="display:none">
+      <button class="btn btn-outline" onclick="switchTab('history')">View History</button>
+      <button class="btn btn-navy" onclick="newAudit()">New Audit</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════ HISTORY VIEW ══════════════ -->
+<div id="view-history" class="view">
+  <div style="padding:14px 14px 0">
+    <button class="btn btn-amber" style="width:100%;margin-bottom:10px" onclick="exportFullWorkbook()">
+      Export Full Workbook (All Departments)
+    </button>
+    <div id="workbook-status" style="font-size:.78rem;color:var(--muted);text-align:center;margin-bottom:10px;display:none"></div>
+  </div>
+  <div class="hist-wrap" id="hist-wrap"></div>
+</div>
+
+<!-- ══════════════ CONFIRM DIALOG ══════════════ -->
+<div class="overlay hidden" id="overlay">
+  <div class="dialog">
+    <h3 id="dlg-title">Confirm</h3>
+    <p  id="dlg-msg">Are you sure?</p>
+    <div class="dialog-btns">
+      <button class="btn btn-outline" style="flex:1;padding:13px" onclick="closeDlg()">Cancel</button>
+      <button class="btn btn-red"     style="flex:1;padding:13px" id="dlg-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ TOAST ══════════════ -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ──────────────────────────────────────────────────────────
+// AUDIT ITEM DEFINITIONS
+// ──────────────────────────────────────────────────────────
+const SORT = [
+  'Is work place free of personal items and general clutter',
+  'Are unused parts, jigs, tools, paperwork, equipment, scrap, etc. present',
+  'Is anything obstructing flow or operator safety',
+];
+const SET = [
+  'Tools & equipment labeled and stored in designated location',
+  'Floor markings, labels, & signs visible and accurate',
+  'Equipment and tools accessible w/ little operator motion',
+  'Shadow boards & racks maintained & organized',
+];
+const SHINE_STD = [
+  'Work areas free of dirt & debris',
+  'Machines, tops of shelves, cleaned regularly',
+  'Along walls, beams, and other stationary items are cleaned',
+  'Cleaning tools accessible and properly stored',
+  'Garbage & broken pallets removed regularly',
+];
+const SHINE_WELD = [
+  'Work areas free of dirt & debris',
+  'Machines, welders, tops of shelves, cleaned regularly',
+  'Are weld screens in good condition',
+  'Along walls, beams, and other stationary items are cleaned',
+  'Cleaning tools accessible and properly stored',
+  'Garbage & broken pallets removed regularly',
+];
+const SHINE_PAINT = [
+  'Work areas free of dirt & debris',
+  'Machines, tops of shelves, cleaned regularly',
+  'Along walls, beams, and other stationary items are cleaned',
+  'Cleaning tools accessible and properly stored',
+  'Garbage & broken pallets removed regularly',
+  'Is paint room clean and free of personal items',
+];
+const SHINE_BURN = [
+  'Is laser control panel free of old paperwork and personal items?',
+  'Work areas free of dirt & debris',
+  'Lasers, tops of shelves, cleaned regularly',
+  'Along walls, beams, and other stationary items are cleaned',
+  'Are rails and tracks free of trash and debris?',
+  'Cleaning tools accessible and properly stored',
+  'Garbage & broken pallets removed regularly',
+  'Are Parts organized and stacked correctly',
+];
+const STANDARDIZE = [
+  '5S procedures are documented, posted & in good condition in each work center',
+  'Latest audit posted and reviewed',
+];
+const SUSTAIN = [
+  'Operators know or where to find 5S standards',
+  'Last audit is posted and fixes in process',
+];
+
+const WELD_DEPTS = new Set(['Couplers','Thumbs','QH Bucket','Pin On Bucket','Specialty Bucket','Cobot']);
+const BURN_DEPTS = new Set(['Burn Bay 1','Burn Bay 2','Burn Bay 3']);
+
+function getShine(dept) {
+  if (BURN_DEPTS.has(dept))  return SHINE_BURN;
+  if (dept === 'Paint')       return SHINE_PAINT;
+  if (WELD_DEPTS.has(dept))  return SHINE_WELD;
+  return SHINE_STD;
+}
+
+function getSections(dept) {
+  return [
+    { key: 'sort',  label: 'Sort',         cls: 'sec-sort',  items: SORT },
+    { key: 'set',   label: 'Set in Place', cls: 'sec-set',   items: SET  },
+    { key: 'shine', label: 'Shine',        cls: 'sec-shine', items: getShine(dept) },
+    { key: 'std',   label: 'Standardize',  cls: 'sec-std',   items: STANDARDIZE },
+    { key: 'sus',   label: 'Sustain',      cls: 'sec-sus',   items: SUSTAIN },
+  ];
+}
+
+// ──────────────────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────────────────
+let scores   = {};   // key: "sec-idx" → { score: null|0-5, remarks: '' }
+let activeDept = '';
+let savedId  = null;
+
+// ──────────────────────────────────────────────────────────
+// INIT
+// ──────────────────────────────────────────────────────────
+(function init() {
+  const now = new Date();
+  document.getElementById('f-date').value = now.toISOString().slice(0, 10);
+  document.getElementById('f-time').value = now.toTimeString().slice(0, 5);
+})();
+
+// ──────────────────────────────────────────────────────────
+// TAB SWITCHING
+// ──────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+// ──────────────────────────────────────────────────────────
+// BUILD FORM
+// ──────────────────────────────────────────────────────────
+function onDeptChange() {
+  activeDept = document.getElementById('f-dept').value;
+  scores = {};
+  savedId = null;
+  renderSections();
+}
+
+function renderSections() {
+  const wrap = document.getElementById('sections-container');
+  const dept = activeDept;
+
+  if (!dept) {
+    wrap.innerHTML = '<div class="pick-dept"><div class="icon">📋</div><p>Select a department above<br>to load the audit checklist.</p></div>';
+    document.getElementById('total-box').style.display = 'none';
+    document.getElementById('btn-row').style.display = 'none';
+    document.getElementById('export-row').style.display = 'none';
+    document.getElementById('new-audit-row').style.display = 'none';
+    return;
+  }
+
+  const sections = getSections(dept);
+  wrap.innerHTML = sections.map(sec => `
+    <div class="section-card ${sec.cls}" id="sc-${sec.key}">
+      <div class="section-hd">
+        <h3>${sec.label}</h3>
+        <div class="section-badge" id="badge-${sec.key}">0 / ${sec.items.length * 5}</div>
+      </div>
+      ${sec.items.map((item, i) => `
+        <div class="audit-item">
+          <div class="item-num">Item ${i + 1}</div>
+          <div class="item-label">${item}</div>
+          <div class="score-row" id="sr-${sec.key}-${i}">
+            ${[0,1,2,3,4,5].map(n => `
+              <button class="score-btn" data-sec="${sec.key}" data-idx="${i}" data-val="${n}"
+                onclick="setScore('${sec.key}',${i},${n})">${n}</button>
+            `).join('')}
+          </div>
+          <div class="remarks-lbl">Remarks</div>
+          <textarea class="remarks-input" id="rm-${sec.key}-${i}"
+            placeholder="Optional notes…" rows="2"
+            oninput="updateRemarks('${sec.key}',${i},this.value)"></textarea>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  document.getElementById('total-box').style.display = 'block';
+  document.getElementById('btn-row').style.display   = 'flex';
+  document.getElementById('export-row').style.display = 'none';
+  document.getElementById('new-audit-row').style.display = 'none';
+  recalcTotals();
+}
+
+// ──────────────────────────────────────────────────────────
+// SCORING
+// ──────────────────────────────────────────────────────────
+function setScore(sec, idx, val) {
+  const key = `${sec}-${idx}`;
+  if (!scores[key]) scores[key] = { score: null, remarks: '' };
+  scores[key].score = val;
+
+  const row = document.getElementById(`sr-${sec}-${idx}`);
+  row.querySelectorAll('.score-btn').forEach((btn, i) => {
+    btn.className = 'score-btn' + (i === val ? ` sel-${val}` : '');
+  });
+  recalcTotals();
+}
+
+function updateRemarks(sec, idx, val) {
+  const key = `${sec}-${idx}`;
+  if (!scores[key]) scores[key] = { score: null, remarks: '' };
+  scores[key].remarks = val;
+}
+
+function recalcTotals() {
+  if (!activeDept) return;
+  const sections = getSections(activeDept);
+  let grand = 0, maxTotal = 0;
+
+  sections.forEach(sec => {
+    let secSum = 0;
+    sec.items.forEach((_, i) => {
+      const s = scores[`${sec.key}-${i}`];
+      if (s && s.score !== null) secSum += s.score;
+    });
+    const secMax = sec.items.length * 5;
+    grand    += secSum;
+    maxTotal += secMax;
+    const badge = document.getElementById(`badge-${sec.key}`);
+    if (badge) badge.textContent = `${secSum} / ${secMax}`;
+  });
+
+  const itemCount = maxTotal / 5;
+  const avg = itemCount > 0 ? (grand / itemCount).toFixed(1) : '0.0';
+  document.getElementById('t-num').textContent = grand;
+  document.getElementById('t-avg').textContent = avg;
+}
+
+// ──────────────────────────────────────────────────────────
+// SAVE
+// ──────────────────────────────────────────────────────────
+function saveAudit() {
+  const dept = document.getElementById('f-dept').value;
+  if (!dept) { toast('Select a department first', 'err'); return; }
+
+  const sections = getSections(dept);
+  let grand = 0, maxTotal = 0;
+
+  const secData = sections.map(sec => {
+    const items = sec.items.map((label, i) => {
+      const s = scores[`${sec.key}-${i}`] || { score: null, remarks: '' };
+      if (s.score !== null) grand += s.score;
+      maxTotal += 5;
+      return { label, score: s.score, remarks: s.remarks };
+    });
+    return { key: sec.key, label: sec.label, items };
+  });
+
+  const id = savedId || String(Date.now());
+  savedId = id;
+
+  const audit = {
+    id,
+    dept,
+    auditor: document.getElementById('f-auditor').value.trim() || 'Chase S.',
+    date:    document.getElementById('f-date').value,
+    time:    document.getElementById('f-time').value,
+    sections: secData,
+    total: grand,
+    max:   maxTotal,
+    savedAt: new Date().toISOString(),
+  };
+
+  const all = getAll();
+  const idx = all.findIndex(a => a.id === id);
+  if (idx >= 0) all[idx] = audit; else all.unshift(audit);
+  localStorage.setItem('tag5s', JSON.stringify(all));
+
+  document.getElementById('export-row').style.display = 'flex';
+  document.getElementById('new-audit-row').style.display = 'flex';
+  toast('Audit saved!', 'ok');
+}
+
+function newAudit() {
+  document.getElementById('f-dept').value = '';
+  document.getElementById('f-auditor').value = 'Chase S.';
+  const today = new Date();
+  document.getElementById('f-date').value = today.toISOString().slice(0,10);
+  document.getElementById('f-time').value = today.toTimeString().slice(0,5);
+  scores = {};
+  activeDept = '';
+  savedId = null;
+  renderSections();
+  document.getElementById('total-box').style.display = 'none';
+  document.getElementById('btn-row').style.display = 'none';
+  document.getElementById('export-row').style.display = 'none';
+  document.getElementById('new-audit-row').style.display = 'none';
+  window.scrollTo(0, 0);
+}
+
+function getAll() {
+  try { return JSON.parse(localStorage.getItem('tag5s') || '[]'); } catch { return []; }
+}
+
+// ──────────────────────────────────────────────────────────
+// EXCEL EXPORT
+// ──────────────────────────────────────────────────────────
+function fmtDate(d) {
+  if (!d) return '';
+  const p = d.split('-');
+  return p.length === 3 ? `${p[1]}/${p[2]}/${p[0]}` : d;
+}
+
+function buildAuditSheet(ws, a) {
+  const isBurn    = BURN_DEPTS.has(a.dept);
+  const itemCount = a.sections.reduce((n, s) => n + s.items.length, 0);
+  const avg       = itemCount > 0 ? (a.total / itemCount).toFixed(1) : '0.0';
+
+  ws.columns = [
+    { width: 7.14  }, { width: 13.29 }, { width: 8     },
+    { width: 43.14 }, { width: 5     }, { width: 8     },
+    { width: 10    }, { width: 8     }, { width: 29    },
+  ];
+
+  ws.pageSetup.paperSize   = 1;
+  ws.pageSetup.orientation = 'landscape';
+  ws.pageSetup.fitToPage   = true;
+  ws.pageSetup.fitToWidth  = 1;
+  ws.pageSetup.fitToHeight = 1;
+  ws.pageSetup.margins = { left: 0.25, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
+
+  const NAVY   = { argb: 'FF305496' };
+  const YELLOW = { argb: 'FFFFFF00' };
+  const WHITE  = { argb: 'FFFFFFFF' };
+  const GOLD   = { argb: 'FFFFC000' };
+  const THIN   = { style: 'thin' };
+  const BORDER = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+  const bc = c => { c.border = BORDER; return c; };
+
+  let r = 1;
+
+  // Title row
+  ws.mergeCells('A1:I2');
+  const tc = bc(ws.getCell('A1'));
+  tc.value = '5S Audit Form - ' + a.dept;
+  tc.font  = { bold: true, size: 16 };
+  tc.alignment = { horizontal: 'center', vertical: 'middle' };
+  ws.getRow(1).height = 20;
+  ws.getRow(2).height = 11.25;
+  r = 3;
+
+  // Area row
+  bc(ws.getCell(`A${r}`)).value = 'Area:';
+  ws.mergeCells(`B${r}:D${r}`);
+  bc(ws.getCell(`B${r}`));
+  bc(ws.getCell(`E${r}`));
+  bc(ws.getCell(`F${r}`));
+  ws.mergeCells(`G${r}:I${r}`);
+  bc(ws.getCell(`G${r}`));
+  ws.getRow(r).height = 15;
+  r++;
+
+  // Auditor / Date / Time
+  bc(ws.getCell(`A${r}`)).value = 'Auditor:';
+  ws.mergeCells(`B${r}:D${r}`);
+  bc(ws.getCell(`B${r}`)).value = a.auditor;
+  bc(ws.getCell(`E${r}`));
+  bc(ws.getCell(`F${r}`)).value = 'Date:';
+  bc(ws.getCell(`G${r}`)).value = fmtDate(a.date);
+  bc(ws.getCell(`H${r}`)).value = 'Time:';
+  bc(ws.getCell(`I${r}`)).value = a.time;
+  ws.getRow(r).height = 15;
+  r++;
+
+  // Sections
+  a.sections.forEach(sec => {
+    ws.mergeCells(`A${r}:D${r}`);
+    ws.mergeCells(`F${r}:I${r}`);
+    const sh = bc(ws.getCell(`A${r}`));
+    sh.value = sec.label.toUpperCase();
+    sh.font  = { bold: true, size: 11, color: YELLOW };
+    sh.fill  = { type: 'pattern', pattern: 'solid', fgColor: NAVY };
+    const se = bc(ws.getCell(`E${r}`));
+    se.value = 'Score';
+    se.font  = { bold: true, size: 11, color: WHITE };
+    se.fill  = { type: 'pattern', pattern: 'solid', fgColor: NAVY };
+    se.alignment = { horizontal: 'center' };
+    const sr = bc(ws.getCell(`F${r}`));
+    sr.value = 'Remarks';
+    sr.font  = { size: 11, color: WHITE };
+    sr.fill  = { type: 'pattern', pattern: 'solid', fgColor: NAVY };
+    ws.getRow(r).height = 15;
+    r++;
+
+    sec.items.forEach(item => {
+      ws.mergeCells(`A${r}:D${r}`);
+      ws.mergeCells(`F${r}:I${r}`);
+      bc(ws.getCell(`A${r}`)).value = item.label;
+      const ie = bc(ws.getCell(`E${r}`));
+      ie.value     = (item.score !== null && item.score !== undefined) ? item.score : null;
+      ie.alignment = { horizontal: 'center' };
+      bc(ws.getCell(`F${r}`)).value = item.remarks || null;
+      ws.getRow(r).height = 15;
+      r++;
+    });
+
+    if (sec.key === 'shine' && !isBurn) {
+      ws.mergeCells(`A${r}:D${r}`);
+      ws.mergeCells(`F${r}:I${r}`);
+      bc(ws.getCell(`A${r}`));
+      bc(ws.getCell(`E${r}`));
+      bc(ws.getCell(`F${r}`));
+      ws.getRow(r).height = 15;
+      r++;
+    }
+  });
+
+  // Total row
+  ws.mergeCells(`A${r}:C${r}`);
+  ws.mergeCells(`F${r}:I${r}`);
+  bc(ws.getCell(`A${r}`));
+  const td = bc(ws.getCell(`D${r}`));
+  td.value = 'Total'; td.font = { bold: true };
+  td.fill  = { type: 'pattern', pattern: 'solid', fgColor: GOLD };
+  td.alignment = { horizontal: 'right' };
+  const te = bc(ws.getCell(`E${r}`));
+  te.value = a.total; te.alignment = { horizontal: 'center' };
+  bc(ws.getCell(`F${r}`));
+  ws.getRow(r).height = 15;
+  r++;
+
+  // Overall Score row
+  ws.mergeCells(`A${r}:C${r}`);
+  ws.mergeCells(`F${r}:I${r}`);
+  bc(ws.getCell(`A${r}`));
+  const od = bc(ws.getCell(`D${r}`));
+  od.value = 'Overall Score'; od.font = { bold: true };
+  od.fill  = { type: 'pattern', pattern: 'solid', fgColor: GOLD };
+  od.alignment = { horizontal: 'right' };
+  const oe = bc(ws.getCell(`E${r}`));
+  oe.value = parseFloat(avg); oe.alignment = { horizontal: 'center' };
+  bc(ws.getCell(`F${r}`));
+  ws.getRow(r).height = 15;
+  r++;
+
+  // Blank separator
+  ws.mergeCells(`A${r}:I${r}`);
+  bc(ws.getCell(`A${r}`));
+  ws.getRow(r).height = 15;
+  r++;
+
+  // Legend
+  [
+    [0, 'Missing',            'No evidence of 5S practices. Area is cluttered, disorganized, dirty, and unsafe.'],
+    [1, 'Poor',               'No evidence of 5S practices. Area is only free of dirt and debris. No organization efforts in place.'],
+    [2, 'Fair',               'Minimal 5S efforts. Some attempt at organization, but inconsistent or ineffective.'],
+    [3, 'Meets Expectations', '5S elements in place. Area is organized and clean, but not fully standardized.'],
+    [4, 'Good',               'Area is well-organized, clean, and mostly standardized. Some minor improvements needed.'],
+    [5, 'Excellent',          'Full 5S implementation. Area is neat, clean, standardized, and practices are sustained.'],
+  ].forEach(([num, lbl, desc]) => {
+    bc(ws.getCell(`A${r}`)).value = num;
+    bc(ws.getCell(`B${r}`)).value = lbl;
+    bc(ws.getCell(`C${r}`)).value = desc;
+    ws.getRow(r).height = 15;
+    r++;
+  });
+}
+
+async function exportCurrent() {
+  const dept = document.getElementById('f-dept').value;
+  if (!dept) { toast('Select a department first', 'err'); return; }
+
+  const sections = getSections(dept);
+  let grand = 0, maxTotal = 0;
+  const secData = sections.map(sec => {
+    const items = sec.items.map((label, i) => {
+      const s = scores[`${sec.key}-${i}`] || { score: null, remarks: '' };
+      if (s.score !== null) grand += s.score;
+      maxTotal += 5;
+      return { label, score: s.score, remarks: s.remarks };
+    });
+    return { key: sec.key, label: sec.label, items };
+  });
+
+  await doExport({
+    dept,
+    auditor: document.getElementById('f-auditor').value.trim() || 'Chase S.',
+    date:    document.getElementById('f-date').value,
+    time:    document.getElementById('f-time').value,
+    sections: secData,
+    total: grand,
+    max: maxTotal,
+  });
+}
+
+async function doExport(a) {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('5S Audit');
+  buildAuditSheet(ws, a);
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url    = URL.createObjectURL(blob);
+  const link   = document.createElement('a');
+  const d      = a.date ? new Date(a.date + 'T00:00:00') : new Date();
+  const month  = d.toLocaleString('en-US', { month: 'long' });
+  const safe   = a.dept.replace(/[\/\\?%*:|"<>]/g, '-');
+  link.href     = url;
+  link.download = `${d.getFullYear()}-${month}-${safe}.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+  toast('Excel file downloaded!', 'ok');
+}
+
+async function exportById(id) {
+  const a = getAll().find(x => x.id === id);
+  if (a) await doExport(a);
+}
+
+async function exportFullWorkbook() {
+  const all = getAll();
+  if (!all.length) { toast('No saved audits yet', 'err'); return; }
+
+  const status = document.getElementById('workbook-status');
+  status.style.display = 'block';
+  status.textContent   = 'Building workbook…';
+
+  const wb = new ExcelJS.Workbook();
+  for (const a of all) {
+    const sheetName = a.dept.replace(/[\/\\*\[\]:?]/g, '-').slice(0, 31);
+    buildAuditSheet(wb.addWorksheet(sheetName), a);
+  }
+
+  const dates  = all.map(a => a.date).filter(Boolean).sort();
+  const latest = dates.length ? new Date(dates[dates.length - 1] + 'T00:00:00') : new Date();
+  const month  = latest.toLocaleString('en-US', { month: 'long' });
+  const year   = latest.getFullYear();
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url    = URL.createObjectURL(blob);
+  const link   = document.createElement('a');
+  link.href     = url;
+  link.download = `${year}-${month}-AuditsP2.xlsx`;
+  link.click();
+  URL.revokeObjectURL(url);
+
+  status.textContent = `✓ Exported ${all.length} department${all.length > 1 ? 's' : ''} → ${year}-${month}-AuditsP2.xlsx`;
+  toast('Full workbook downloaded!', 'ok');
+}
+
+// ──────────────────────────────────────────────────────────
+// HISTORY
+// ──────────────────────────────────────────────────────────
+function renderHistory() {
+  const all  = getAll();
+  const wrap = document.getElementById('hist-wrap');
+
+  if (!all.length) {
+    wrap.innerHTML = `
+      <div class="hist-empty">
+        <div class="icon">📋</div>
+        <p>No audits saved yet.<br>Complete an audit and tap <strong>Save Audit</strong>.</p>
+      </div>`;
+    return;
+  }
+
+  wrap.innerHTML = all.map(a => {
+    const pct = a.max ? Math.round((a.total / a.max) * 100) : 0;
+    const parts = [a.date, a.time, a.auditor].filter(Boolean);
+    return `
+      <div class="hist-card">
+        <div class="hist-card-top">
+          <div class="hist-dept">${a.dept}</div>
+          <div class="hist-score-pill">${a.total}/${a.max} &bull; ${pct}%</div>
+        </div>
+        <div class="hist-meta">${parts.join(' &bull; ')}</div>
+        <div class="hist-actions">
+          <button class="btn-sm btn-sm-amber"   onclick="exportById('${a.id}')">Export Excel</button>
+          <button class="btn-sm btn-sm-outline"  onclick="loadAudit('${a.id}')">View / Edit</button>
+          <button class="btn-sm btn-sm-red"      onclick="confirmDelete('${a.id}')">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function loadAudit(id) {
+  const a = getAll().find(x => x.id === id);
+  if (!a) return;
+
+  switchTab('audit');
+
+  document.getElementById('f-dept').value    = a.dept;
+  document.getElementById('f-auditor').value = a.auditor || 'Chase S.';
+  document.getElementById('f-date').value    = a.date    || '';
+  document.getElementById('f-time').value    = a.time    || '';
+
+  activeDept = a.dept;
+  scores = {};
+  savedId = a.id;
+  renderSections();
+
+  // Restore scores after DOM is built
+  requestAnimationFrame(() => {
+    a.sections.forEach(sec => {
+      sec.items.forEach((item, i) => {
+        if (item.score !== null && item.score !== undefined) {
+          setScore(sec.key, i, item.score);
+        }
+        if (item.remarks) {
+          const el = document.getElementById(`rm-${sec.key}-${i}`);
+          if (el) {
+            el.value = item.remarks;
+            updateRemarks(sec.key, i, item.remarks);
+          }
+        }
+      });
+    });
+    document.getElementById('export-row').style.display = 'flex';
+    document.getElementById('new-audit-row').style.display = 'flex';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+}
+
+function deleteAudit(id) {
+  const all = getAll().filter(a => a.id !== id);
+  localStorage.setItem('tag5s', JSON.stringify(all));
+  renderHistory();
+  toast('Audit deleted');
+}
+
+// ──────────────────────────────────────────────────────────
+// CLEAR FORM
+// ──────────────────────────────────────────────────────────
+function clearForm() {
+  scores = {};
+  savedId = null;
+  renderSections();
+  toast('Audit cleared');
+}
+
+// ──────────────────────────────────────────────────────────
+// DIALOGS
+// ──────────────────────────────────────────────────────────
+let dlgCallback = null;
+
+function openDlg(title, msg, cb) {
+  document.getElementById('dlg-title').textContent = title;
+  document.getElementById('dlg-msg').textContent   = msg;
+  dlgCallback = cb;
+  document.getElementById('overlay').classList.remove('hidden');
+}
+function closeDlg() {
+  document.getElementById('overlay').classList.add('hidden');
+  dlgCallback = null;
+}
+document.getElementById('dlg-ok').addEventListener('click', () => {
+  const cb = dlgCallback;
+  closeDlg();
+  if (cb) cb();
+});
+
+function confirmClear()       { openDlg('Clear Audit', 'Clear all scores and remarks? Your department selection is kept.', clearForm); }
+function confirmDelete(id)    { openDlg('Delete Audit', 'Permanently delete this audit? This cannot be undone.', () => deleteAudit(id)); }
+
+// ──────────────────────────────────────────────────────────
+// TOAST
+// ──────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+</script>
+</body>
+</html>
