@@ -1,6 +1,6 @@
-const CACHE = 'tag-5s-v1';
+const CACHE = 'tag-5s-v2';
 const ASSETS = [
-  './5s Audit App.html',
+  './index.html',
   './icon.svg',
   './manifest.json',
   'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js'

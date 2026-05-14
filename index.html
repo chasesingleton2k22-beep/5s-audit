@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="TAG 5S Audit">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
-<title>5S Audit — TAG Mfg Plant 2</title>
+<title>TAG 5S Audit</title>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
 :root {
@@ -27,18 +27,14 @@
   --muted:   #5b7290;
   --red:     #dc2626;
   --green:   #16a34a;
-
   --sort-bg:  #0f2d4a;
   --set-bg:   #0d3528;
   --shine-bg: #2d2d2d;
   --std-bg:   #2e1b5e;
   --sus-bg:   #5c1a0a;
 }
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
 html { height: 100%; }
-
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background: var(--surface);
@@ -56,26 +52,54 @@ body {
   z-index: 50;
   box-shadow: 0 2px 12px rgba(0,0,0,.35);
 }
-.app-bar-inner {
-  padding: 12px 16px 0;
+.app-bar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px 0;
 }
-.app-bar h1 {
+.app-bar-title h1 {
   font-size: .8rem;
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
   color: var(--amber);
 }
-.app-bar p {
-  font-size: .7rem;
-  color: rgba(255,255,255,.55);
-  letter-spacing: .08em;
+.app-bar-title p {
+  font-size: .68rem;
+  color: rgba(255,255,255,.5);
+  letter-spacing: .07em;
   text-transform: uppercase;
   margin-top: 1px;
 }
+.plant-toggle {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.plant-btn {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 2px solid rgba(255,255,255,.3);
+  background: transparent;
+  color: rgba(255,255,255,.55);
+  transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.plant-btn.active {
+  background: var(--amber);
+  border-color: var(--amber);
+  color: var(--navy);
+}
 .tabs {
   display: flex;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 .tab {
   flex: 1;
@@ -94,12 +118,56 @@ body {
 }
 .tab.active { color: var(--amber); border-bottom-color: var(--amber); }
 
+/* ── STICKY SCORE BAR ───────────────────────────── */
+.sticky-score {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--navy2);
+  padding: 6px 16px;
+  border-top: 1px solid rgba(255,255,255,.1);
+}
+.sticky-score.visible { display: flex; }
+.sticky-dept-name {
+  font-size: .72rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.7);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sticky-nums {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.sticky-stat {
+  text-align: center;
+}
+.sticky-stat-lbl {
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.45);
+}
+.sticky-stat-val {
+  font-size: .92rem;
+  font-weight: 900;
+  color: var(--amber);
+  line-height: 1;
+}
+
 /* ── VIEWS ──────────────────────────────────────── */
 .view { display: none; }
 .view.active { display: block; }
 
 /* ── FORM WRAPPER ───────────────────────────────── */
-.form-wrap { padding: 14px; }
+.form-wrap { padding: 14px; max-width: 600px; margin: 0 auto; }
 
 /* ── CARDS ──────────────────────────────────────── */
 .card {
@@ -120,6 +188,66 @@ body {
   border-bottom: 1px solid var(--border);
   background: #f8fafc;
 }
+
+/* ── DASHBOARD ──────────────────────────────────── */
+.dash-wrap { padding: 14px; max-width: 600px; margin: 0 auto; }
+.dash-dept-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  gap: 10px;
+}
+.dash-dept-row:last-child { border-bottom: none; }
+.dash-dept-row:active { background: #f0f4f8; }
+.dash-dept-name {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+.dash-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.dash-score-pill {
+  padding: 4px 11px;
+  border-radius: 20px;
+  font-size: .82rem;
+  font-weight: 800;
+  color: #fff;
+}
+.dash-pill-green  { background: #16a34a; }
+.dash-pill-amber  { background: #d97706; }
+.dash-pill-red    { background: #dc2626; }
+.dash-pill-gray   { background: #9ca3af; }
+.dash-trend {
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.trend-up   { color: #16a34a; }
+.trend-down { color: #dc2626; }
+.trend-flat { color: #9ca3af; }
+.dash-no-audits {
+  font-size: .78rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+.dash-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--muted);
+}
+.dash-empty .icon { font-size: 2.6rem; margin-bottom: 10px; }
+.dash-empty p { font-size: .9rem; line-height: 1.55; }
 
 /* ── LEGEND ─────────────────────────────────────── */
 .legend-grid {
@@ -225,13 +353,49 @@ body {
 .sec-std   .section-hd { background: var(--std-bg);  }
 .sec-sus   .section-hd { background: var(--sus-bg);  }
 
+/* ── SECTION FOOTER SUBTOTAL ────────────────────── */
+.section-footer {
+  background: #f8fafc;
+  border-top: 1px solid var(--border);
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sec-foot-lbl {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.sec-foot-val {
+  font-size: .78rem;
+  font-weight: 800;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.sec-mini-bar-wrap {
+  flex: 1;
+  height: 5px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.sec-mini-bar-fill {
+  height: 100%;
+  background: var(--amber2);
+  border-radius: 99px;
+  transition: width .25s ease;
+}
+
 /* ── AUDIT ITEM ─────────────────────────────────── */
 .audit-item {
   background: var(--card);
   border-bottom: 1px solid var(--border);
   padding: 13px 14px;
 }
-.audit-item:last-child { border-bottom: none; }
 .item-num {
   font-size: .65rem;
   font-weight: 700;
@@ -269,7 +433,6 @@ body {
   touch-action: manipulation;
 }
 .score-btn:active { transform: scale(.93); }
-
 .score-btn.sel-0 { background: #6b0f0f; border-color: #6b0f0f; color: #fff; }
 .score-btn.sel-1 { background: #b91c1c; border-color: #b91c1c; color: #fff; }
 .score-btn.sel-2 { background: #d97706; border-color: #d97706; color: #fff; }
@@ -277,8 +440,8 @@ body {
 .score-btn.sel-4 { background: #16a34a; border-color: #16a34a; color: #fff; }
 .score-btn.sel-5 { background: #065f46; border-color: #065f46; color: #fff; }
 
-/* ── REMARKS ────────────────────────────────────── */
-.remarks-lbl {
+/* ── NOTE INPUT ─────────────────────────────────── */
+.note-lbl {
   font-size: .65rem;
   font-weight: 700;
   letter-spacing: .08em;
@@ -286,7 +449,7 @@ body {
   color: var(--muted);
   margin-bottom: 4px;
 }
-.remarks-input {
+.note-input {
   width: 100%;
   padding: 9px 10px;
   border: 1.5px solid var(--border);
@@ -294,18 +457,16 @@ body {
   font-size: .85rem;
   color: var(--text);
   background: var(--surface);
-  resize: none;
-  min-height: 56px;
   font-family: inherit;
   line-height: 1.4;
 }
-.remarks-input:focus {
+.note-input:focus {
   outline: none;
   border-color: var(--amber);
   background: #fff;
 }
 
-/* ── TOTAL SCORE BAR ────────────────────────────── */
+/* ── TOTAL SCORE BOX ────────────────────────────── */
 .total-box {
   background: var(--navy);
   border-radius: 14px;
@@ -329,20 +490,6 @@ body {
   line-height: 1;
 }
 .total-denom { font-size: 1.1rem; color: rgba(255,255,255,.4); }
-.bar-wrap {
-  background: rgba(255,255,255,.14);
-  border-radius: 99px;
-  height: 9px;
-  margin: 10px 0 6px;
-  overflow: hidden;
-}
-.bar-fill {
-  height: 100%;
-  background: var(--amber);
-  border-radius: 99px;
-  transition: width .3s ease;
-}
-.total-pct { font-size: .85rem; color: rgba(255,255,255,.6); }
 
 /* ── ACTION BUTTONS ─────────────────────────────── */
 .btn-row { display: flex; gap: 10px; margin-bottom: 12px; }
@@ -361,14 +508,14 @@ body {
   touch-action: manipulation;
 }
 .btn:active { transform: scale(.97); }
-.btn-amber  { background: var(--amber); color: var(--navy); }
+.btn-amber   { background: var(--amber); color: var(--navy); }
 .btn-amber:hover { background: var(--amber2); }
-.btn-navy   { background: var(--navy); color: #fff; }
-.btn-red    { background: var(--red); color: #fff; }
+.btn-navy    { background: var(--navy); color: #fff; }
+.btn-red     { background: var(--red); color: #fff; }
 .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text); }
 
 /* ── HISTORY ────────────────────────────────────── */
-.hist-wrap { padding: 14px; }
+.hist-wrap { padding: 14px; max-width: 600px; margin: 0 auto; }
 .hist-empty {
   text-align: center;
   padding: 56px 24px;
@@ -376,7 +523,6 @@ body {
 }
 .hist-empty .icon { font-size: 2.8rem; margin-bottom: 10px; }
 .hist-empty p { font-size: .9rem; line-height: 1.5; }
-
 .hist-card {
   background: var(--card);
   border-radius: 12px;
@@ -427,9 +573,9 @@ body {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
-.btn-sm-amber  { background: var(--amber); color: var(--navy); }
+.btn-sm-amber   { background: var(--amber); color: var(--navy); }
 .btn-sm-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
-.btn-sm-red    { background: #fee2e2; color: var(--red); }
+.btn-sm-red     { background: #fee2e2; color: var(--red); }
 
 /* ── DIALOG OVERLAY ─────────────────────────────── */
 .overlay {
@@ -475,8 +621,8 @@ body {
   box-shadow: 0 4px 14px rgba(0,0,0,.3);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.ok    { background: #065f46; }
-.toast.err   { background: var(--red); }
+.toast.ok   { background: #065f46; }
+.toast.err  { background: var(--red); }
 
 /* ── PLACEHOLDER ────────────────────────────────── */
 .pick-dept {
@@ -488,6 +634,19 @@ body {
 }
 .pick-dept .icon { font-size: 2.4rem; margin-bottom: 10px; }
 
+/* ── OFFLINE BANNER ─────────────────────────────── */
+.offline-banner {
+  display: none;
+  background: #92400e;
+  color: #fff;
+  text-align: center;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  letter-spacing: .04em;
+}
+.offline-banner.show { display: block; }
+
 @media (max-width: 360px) {
   .score-btn { height: 42px; font-size: .95rem; }
   .legend-grid { grid-template-columns: 1fr; }
@@ -496,20 +655,53 @@ body {
 </head>
 <body>
 
+<!-- ══════════════ OFFLINE BANNER ══════════════ -->
+<div class="offline-banner" id="offline-banner">⚠ No internet connection — app running offline</div>
+
 <!-- ══════════════ APP BAR ══════════════ -->
 <div class="app-bar">
-  <div class="app-bar-inner">
-    <h1>5S Audit System</h1>
-    <p>TAG Manufacturing — Plant 2</p>
+  <div class="app-bar-top">
+    <div class="app-bar-title">
+      <h1>5S Audit System</h1>
+      <p id="plant-label">TAG Manufacturing — Plant 2</p>
+    </div>
+    <div class="plant-toggle">
+      <button class="plant-btn active" id="btn-p2" onclick="switchPlant('p2')">Plant 2</button>
+      <button class="plant-btn"        id="btn-p1" onclick="switchPlant('p1')">Plant 1</button>
+    </div>
+  </div>
+  <div class="sticky-score" id="sticky-score">
+    <div class="sticky-dept-name" id="sticky-dept-name"></div>
+    <div class="sticky-nums">
+      <div class="sticky-stat">
+        <div class="sticky-stat-lbl">Total</div>
+        <div class="sticky-stat-val" id="sticky-total">0</div>
+      </div>
+      <div class="sticky-stat">
+        <div class="sticky-stat-lbl">Avg</div>
+        <div class="sticky-stat-val" id="sticky-avg">0.0</div>
+      </div>
+    </div>
   </div>
   <div class="tabs">
-    <button class="tab active" data-tab="audit" onclick="switchTab('audit')">New Audit</button>
-    <button class="tab" data-tab="history" onclick="switchTab('history')">History</button>
+    <button class="tab active" data-tab="dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab"        data-tab="audit"     onclick="switchTab('audit')">Audit</button>
+    <button class="tab"        data-tab="history"   onclick="switchTab('history')">History</button>
+  </div>
+</div>
+
+<!-- ══════════════ DASHBOARD VIEW ══════════════ -->
+<div id="view-dashboard" class="view active">
+  <div class="dash-wrap">
+    <div class="card" id="dash-card">
+      <div class="card-head" id="dash-card-head">Department Scores</div>
+      <div id="dash-body"></div>
+    </div>
   </div>
 </div>
 
 <!-- ══════════════ AUDIT VIEW ══════════════ -->
-<div id="view-audit" class="view active">
+<div id="view-audit" class="view">
   <div class="form-wrap">
 
     <!-- Legend -->
@@ -533,33 +725,6 @@ body {
           <label>Department</label>
           <select id="f-dept" onchange="onDeptChange()">
             <option value="">— Select Department —</option>
-            <optgroup label="Standard">
-              <option>Shipping</option>
-              <option>Assembly</option>
-              <option>Maintenance</option>
-              <option>Saw</option>
-              <option>Press and Strip Tables</option>
-              <option>Continuous Improvement</option>
-              <option>Machine Shop</option>
-              <option>Install</option>
-              <option>Kitting</option>
-            </optgroup>
-            <optgroup label="Weld">
-              <option>Couplers</option>
-              <option>Thumbs</option>
-              <option>QH Bucket</option>
-              <option>Pin On Bucket</option>
-              <option>Specialty Bucket</option>
-              <option>Cobot</option>
-            </optgroup>
-            <optgroup label="Paint">
-              <option>Paint</option>
-            </optgroup>
-            <optgroup label="Burn Bay">
-              <option>Burn Bay 1</option>
-              <option>Burn Bay 2</option>
-              <option>Burn Bay 3</option>
-            </optgroup>
           </select>
         </div>
         <div class="field">
@@ -579,7 +744,7 @@ body {
       </div>
     </div>
 
-    <!-- Dynamic sections rendered here -->
+    <!-- Dynamic sections -->
     <div id="sections-container">
       <div class="pick-dept">
         <div class="icon">📋</div>
@@ -587,7 +752,7 @@ body {
       </div>
     </div>
 
-    <!-- Total Score (hidden until dept selected) -->
+    <!-- Total Score -->
     <div class="total-box" id="total-box" style="display:none">
       <div style="display:flex;justify-content:space-around;align-items:center;gap:16px">
         <div style="text-align:center">
@@ -606,14 +771,14 @@ body {
     <!-- Buttons -->
     <div class="btn-row" id="btn-row" style="display:none">
       <button class="btn btn-outline" onclick="confirmClear()">Clear</button>
-      <button class="btn btn-navy"  onclick="saveAudit()">Save Audit</button>
+      <button class="btn btn-navy"    onclick="saveAudit()">Save Audit</button>
     </div>
     <div class="btn-row" id="export-row" style="display:none">
       <button class="btn btn-amber" onclick="exportCurrent()">Export to Excel</button>
     </div>
     <div class="btn-row" id="new-audit-row" style="display:none">
       <button class="btn btn-outline" onclick="switchTab('history')">View History</button>
-      <button class="btn btn-navy" onclick="newAudit()">New Audit</button>
+      <button class="btn btn-navy"    onclick="newAudit()">New Audit</button>
     </div>
 
   </div>
@@ -621,7 +786,7 @@ body {
 
 <!-- ══════════════ HISTORY VIEW ══════════════ -->
 <div id="view-history" class="view">
-  <div style="padding:14px 14px 0">
+  <div style="padding:14px 14px 0;max-width:600px;margin:0 auto">
     <button class="btn btn-amber" style="width:100%;margin-bottom:10px" onclick="exportFullWorkbook()">
       Export Full Workbook (All Departments)
     </button>
@@ -646,28 +811,28 @@ body {
 <div class="toast" id="toast"></div>
 
 <script>
-// ──────────────────────────────────────────────────────────
-// AUDIT ITEM DEFINITIONS
-// ──────────────────────────────────────────────────────────
-const SORT = [
+// ══════════════════════════════════════════════════════════
+// PLANT 2 DATA
+// ══════════════════════════════════════════════════════════
+const P2_SORT = [
   'Is work place free of personal items and general clutter',
   'Are unused parts, jigs, tools, paperwork, equipment, scrap, etc. present',
   'Is anything obstructing flow or operator safety',
 ];
-const SET = [
+const P2_SET = [
   'Tools & equipment labeled and stored in designated location',
   'Floor markings, labels, & signs visible and accurate',
   'Equipment and tools accessible w/ little operator motion',
   'Shadow boards & racks maintained & organized',
 ];
-const SHINE_STD = [
+const P2_SHINE_STD = [
   'Work areas free of dirt & debris',
   'Machines, tops of shelves, cleaned regularly',
   'Along walls, beams, and other stationary items are cleaned',
   'Cleaning tools accessible and properly stored',
   'Garbage & broken pallets removed regularly',
 ];
-const SHINE_WELD = [
+const P2_SHINE_WELD = [
   'Work areas free of dirt & debris',
   'Machines, welders, tops of shelves, cleaned regularly',
   'Are weld screens in good condition',
@@ -675,7 +840,7 @@ const SHINE_WELD = [
   'Cleaning tools accessible and properly stored',
   'Garbage & broken pallets removed regularly',
 ];
-const SHINE_PAINT = [
+const P2_SHINE_PAINT = [
   'Work areas free of dirt & debris',
   'Machines, tops of shelves, cleaned regularly',
   'Along walls, beams, and other stationary items are cleaned',
@@ -683,7 +848,7 @@ const SHINE_PAINT = [
   'Garbage & broken pallets removed regularly',
   'Is paint room clean and free of personal items',
 ];
-const SHINE_BURN = [
+const P2_SHINE_BURN = [
   'Is laser control panel free of old paperwork and personal items?',
   'Work areas free of dirt & debris',
   'Lasers, tops of shelves, cleaned regularly',
@@ -693,86 +858,372 @@ const SHINE_BURN = [
   'Garbage & broken pallets removed regularly',
   'Are Parts organized and stacked correctly',
 ];
-const STANDARDIZE = [
+const P2_STANDARDIZE = [
   '5S procedures are documented, posted & in good condition in each work center',
   'Latest audit posted and reviewed',
 ];
-const SUSTAIN = [
+const P2_SUSTAIN = [
   'Operators know or where to find 5S standards',
   'Last audit is posted and fixes in process',
 ];
+const P2_WELD_DEPTS = new Set(['Couplers','Thumbs','QH Bucket','Pin On Bucket','Specialty Bucket','Cobot']);
+const P2_BURN_DEPTS = new Set(['Burn Bay 1','Burn Bay 2','Burn Bay 3']);
 
-const WELD_DEPTS = new Set(['Couplers','Thumbs','QH Bucket','Pin On Bucket','Specialty Bucket','Cobot']);
-const BURN_DEPTS = new Set(['Burn Bay 1','Burn Bay 2','Burn Bay 3']);
-
-function getShine(dept) {
-  if (BURN_DEPTS.has(dept))  return SHINE_BURN;
-  if (dept === 'Paint')       return SHINE_PAINT;
-  if (WELD_DEPTS.has(dept))  return SHINE_WELD;
-  return SHINE_STD;
+function p2GetShine(dept) {
+  if (P2_BURN_DEPTS.has(dept)) return P2_SHINE_BURN;
+  if (dept === 'Paint')         return P2_SHINE_PAINT;
+  if (P2_WELD_DEPTS.has(dept)) return P2_SHINE_WELD;
+  return P2_SHINE_STD;
 }
-
-function getSections(dept) {
+function p2GetSections(dept) {
   return [
-    { key: 'sort',  label: 'Sort',         cls: 'sec-sort',  items: SORT },
-    { key: 'set',   label: 'Set in Place', cls: 'sec-set',   items: SET  },
-    { key: 'shine', label: 'Shine',        cls: 'sec-shine', items: getShine(dept) },
-    { key: 'std',   label: 'Standardize',  cls: 'sec-std',   items: STANDARDIZE },
-    { key: 'sus',   label: 'Sustain',      cls: 'sec-sus',   items: SUSTAIN },
+    { key:'sort',  label:'Sort',        cls:'sec-sort',  items: P2_SORT },
+    { key:'set',   label:'Set in Place',cls:'sec-set',   items: P2_SET  },
+    { key:'shine', label:'Shine',       cls:'sec-shine', items: p2GetShine(dept) },
+    { key:'std',   label:'Standardize', cls:'sec-std',   items: P2_STANDARDIZE },
+    { key:'sus',   label:'Sustain',     cls:'sec-sus',   items: P2_SUSTAIN },
   ];
 }
 
-// ──────────────────────────────────────────────────────────
-// STATE
-// ──────────────────────────────────────────────────────────
-let scores   = {};   // key: "sec-idx" → { score: null|0-5, remarks: '' }
-let activeDept = '';
-let savedId  = null;
+// ══════════════════════════════════════════════════════════
+// PLANT 1 DATA
+// ══════════════════════════════════════════════════════════
+const P1_SORT = [
+  'Is work place free of personal items and general clutter',
+  'Are unused parts, jigs, tools, paperwork, equipment, scrap, etc. present',
+  'Is anything obstructing flow or operator safety',
+  'All scrap, paper, metal and other has been removed',
+];
+const P1_SET = [
+  'Tools & equipment labeled and stored in designated location',
+  'Floor markings, labels, & signs visible and accurate',
+  'Equipment and tools accessible w/ little operator motion',
+  'Shadow boards & racks maintained & organized',
+];
+const P1_SHINE_CI = [
+  'Work areas free of oil, dirt & debris',
+  'Machines, welders, tops of shelves, cleaned regularly',
+  'Along walls, beams, and other stationary items are cleaned',
+  'Hyd Hose station organized, free of dirt & oil',
+  'Cleaning tools accessible and properly stored',
+  'Garbage & broken pallets removed regularly',
+];
+const P1_SHINE_WELD = [
+  'Work areas free of dirt & debris',
+  'Machines, welders, tops of shelves, cleaned regularly',
+  'Along walls, beams, and other stationary items are cleaned',
+  'Are weld screens in good condition',
+  'Cleaning tools accessible and properly stored',
+  'Garbage & broken pallets removed regularly',
+];
+const P1_SHINE_MACHINE = [
+  'Work areas free of dirt & debris',
+  'Machines, tops of shelves, cleaned regularly',
+  'Stored items & materials produced are organized, pallets in good condition',
+  'Along walls, beams, and other stationary items are cleaned',
+  'Cleaning tools accessible and properly stored',
+  'Garbage & broken pallets removed regularly',
+];
+const P1_SHINE_PAINT = [
+  'Work areas free of dirt & debris',
+  'Machines, paint booths, mixing rooms, tops of shelves, cleaned regularly',
+  'Along walls, beams, and other stationary items are cleaned',
+  'Paint storage room organized, labeled, cleaned',
+  'Cleaning tools accessible and properly stored',
+  'Garbage & broken pallets removed regularly',
+];
+const P1_SHINE_BURN = [
+  'Work areas free of dirt & debris',
+  'Machines, gantry, gantry travel rails, tops of shelves, cleaned regularly',
+  'Along walls, beams, and other stationary items are cleaned',
+  'Cleaning tools accessible and properly stored',
+  'Garbage & broken pallets removed regularly',
+];
+const P1_SHINE_MAINTENANCE = [
+  'Work areas free of dirt & debris',
+  'Machines, welders, tops of shelves, cleaned regularly',
+  'Along walls, beams, and other stationary items are cleaned',
+  'Work stations clean & organized',
+  'Cleaning tools accessible and properly stored',
+  'Garbage & broken pallets removed regularly',
+];
+const P1_SHINE_SHIPPING = [
+  'Work areas free of dirt & debris',
+  'Machines, welders, tops of shelves, cleaned regularly',
+  'Along walls, beams, and other stationary items are cleaned',
+  'Work stations (including office) clean & organized',
+  'Cleaning tools accessible and properly stored',
+  'Garbage & broken pallets removed regularly',
+];
+const P1_STANDARDIZE = [
+  '5S procedures are documented, posted & in good condition in each work center',
+  'Latest audit posted and reviewed',
+];
+const P1_SUS_DEFAULT  = ['Operators know or where to find 5S standards'];
+const P1_SUS_WELD_FAB = [
+  'Operators know or where to find 5S standards',
+  '5S Diagram posted in work areas',
+  'Last audit is posted and fixes in process',
+];
+const P1_WELD_DEPTS    = new Set(['Weld & Fab','Large Bucket 1','Large Bucket 2','Custom Fab','WL Couplers','Bushing Inst & Weld','Weld 1','Weld 2']);
+const P1_BURN_DEPTS    = new Set(['Burn Bay 1','Burn Bay 2','Burn Bay 3']);
+const P1_CI_ASSEMBLY   = new Set(['Continuous Improvement','Assembly']);
+const P1_MACHINE_DEPTS = new Set(['Machine Shop','Saw']);
 
-// ──────────────────────────────────────────────────────────
+function p1GetShine(dept) {
+  if (P1_BURN_DEPTS.has(dept))    return P1_SHINE_BURN;
+  if (dept === 'Paint')            return P1_SHINE_PAINT;
+  if (P1_WELD_DEPTS.has(dept))    return P1_SHINE_WELD;
+  if (P1_CI_ASSEMBLY.has(dept))   return P1_SHINE_CI;
+  if (P1_MACHINE_DEPTS.has(dept)) return P1_SHINE_MACHINE;
+  if (dept === 'Maintenance')      return P1_SHINE_MAINTENANCE;
+  if (dept === 'Shipping')         return P1_SHINE_SHIPPING;
+  return P1_SHINE_WELD;
+}
+function p1GetSustain(dept) {
+  return dept === 'Weld & Fab' ? P1_SUS_WELD_FAB : P1_SUS_DEFAULT;
+}
+function p1GetSections(dept) {
+  return [
+    { key:'sort',  label:'Sort',        cls:'sec-sort',  items: P1_SORT },
+    { key:'set',   label:'Set in Place',cls:'sec-set',   items: P1_SET  },
+    { key:'shine', label:'Shine',       cls:'sec-shine', items: p1GetShine(dept) },
+    { key:'std',   label:'Standardize', cls:'sec-std',   items: P1_STANDARDIZE },
+    { key:'sus',   label:'Sustain',     cls:'sec-sus',   items: p1GetSustain(dept) },
+  ];
+}
+
+// ══════════════════════════════════════════════════════════
+// PLANT CONFIG
+// ══════════════════════════════════════════════════════════
+const PLANT_DATA = {
+  p2: {
+    label:       'Plant 2',
+    storageKey:  'tag5s',
+    exportSuffix:'P2',
+    colWidths:   [{width:7.14},{width:13.29},{width:8},{width:43.14},{width:5},{width:8},{width:10},{width:8},{width:29}],
+    burnDepts:   P2_BURN_DEPTS,
+    deptGroups: [
+      { label:'Standard', depts:['Shipping','Assembly','Maintenance','Saw','Press and Strip Tables','Continuous Improvement','Machine Shop','Install','Kitting'] },
+      { label:'Weld',     depts:['Couplers','Thumbs','QH Bucket','Pin On Bucket','Specialty Bucket','Cobot'] },
+      { label:'Paint',    depts:['Paint'] },
+      { label:'Burn Bay', depts:['Burn Bay 1','Burn Bay 2','Burn Bay 3'] },
+    ],
+    getSections: p2GetSections,
+  },
+  p1: {
+    label:       'Plant 1',
+    storageKey:  'tag5s-p1',
+    exportSuffix:'P1',
+    colWidths:   [{width:6.29},{width:13.29},{width:8.43},{width:43.14},{width:5},{width:8.43},{width:10},{width:8.43},{width:30.14}],
+    burnDepts:   P1_BURN_DEPTS,
+    deptGroups: [
+      { label:'Weld',     depts:['Weld & Fab','Large Bucket 1','Large Bucket 2','Custom Fab','WL Couplers','Bushing Inst & Weld','Weld 1','Weld 2'] },
+      { label:'Burn Bay', depts:['Burn Bay 1','Burn Bay 2','Burn Bay 3'] },
+      { label:'Standard', depts:['Continuous Improvement','Assembly','Machine Shop','Saw','Maintenance','Shipping'] },
+      { label:'Paint',    depts:['Paint'] },
+    ],
+    getSections: p1GetSections,
+  },
+};
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+let activePlant = localStorage.getItem('tag5s-active-plant') || 'p2';
+let scores      = {};
+let activeDept  = '';
+let savedId     = null;
+
+// ══════════════════════════════════════════════════════════
 // INIT
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 (function init() {
   const now = new Date();
   document.getElementById('f-date').value = now.toISOString().slice(0, 10);
   document.getElementById('f-time').value = now.toTimeString().slice(0, 5);
+  applyPlantUI();
+  renderDashboard();
 })();
 
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// PLANT SWITCHING
+// ══════════════════════════════════════════════════════════
+function switchPlant(p) {
+  if (p === activePlant) return;
+  activePlant = p;
+  localStorage.setItem('tag5s-active-plant', p);
+
+  // Reset audit state
+  scores = {};
+  activeDept = '';
+  savedId = null;
+
+  applyPlantUI();
+
+  // Re-render current tab content
+  const activeTab = document.querySelector('.tab.active');
+  if (activeTab) {
+    const tab = activeTab.dataset.tab;
+    if (tab === 'dashboard') renderDashboard();
+    else if (tab === 'audit') { renderDeptOptions(); resetAuditView(); }
+    else if (tab === 'history') renderHistory();
+  }
+}
+
+function applyPlantUI() {
+  const pd = PLANT_DATA[activePlant];
+  document.getElementById('plant-label').textContent = 'TAG Manufacturing — ' + pd.label;
+  document.getElementById('btn-p2').classList.toggle('active', activePlant === 'p2');
+  document.getElementById('btn-p1').classList.toggle('active', activePlant === 'p1');
+  renderDeptOptions();
+}
+
+function renderDeptOptions() {
+  const sel = document.getElementById('f-dept');
+  const pd  = PLANT_DATA[activePlant];
+  sel.innerHTML = '<option value="">— Select Department —</option>';
+  pd.deptGroups.forEach(grp => {
+    const og = document.createElement('optgroup');
+    og.label = grp.label;
+    grp.depts.forEach(d => {
+      const opt = document.createElement('option');
+      opt.textContent = d;
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
 // TAB SWITCHING
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 function switchTab(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
   document.querySelector(`[data-tab="${name}"]`).classList.add('active');
-  if (name === 'history') renderHistory();
+
+  // Show/hide sticky score bar only on audit tab
+  const sticky = document.getElementById('sticky-score');
+  if (name === 'audit' && activeDept) {
+    sticky.classList.add('visible');
+  } else {
+    sticky.classList.remove('visible');
+  }
+
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'history')   renderHistory();
 }
 
-// ──────────────────────────────────────────────────────────
-// BUILD FORM
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════
+function renderDashboard() {
+  const pd   = PLANT_DATA[activePlant];
+  const all  = getAllAudits();
+  const body = document.getElementById('dash-body');
+  document.getElementById('dash-card-head').textContent = pd.label + ' — Department Scores';
+
+  // Collect all dept names across groups
+  const allDepts = pd.deptGroups.reduce((acc, g) => acc.concat(g.depts), []);
+
+  if (!all.length) {
+    body.innerHTML = `
+      <div class="dash-empty">
+        <div class="icon">📊</div>
+        <p>No audits saved yet for ${pd.label}.<br>Complete an audit to see scores here.</p>
+      </div>`;
+    return;
+  }
+
+  // Group audits by dept, sorted newest first
+  const byDept = {};
+  all.forEach(a => {
+    if (!byDept[a.dept]) byDept[a.dept] = [];
+    byDept[a.dept].push(a);
+  });
+  // Sort each dept's audits newest first
+  Object.keys(byDept).forEach(d => {
+    byDept[d].sort((a, b) => (b.savedAt || b.date || '') > (a.savedAt || a.date || '') ? 1 : -1);
+  });
+
+  // Build rows — only depts that have audits
+  const deptsWithAudits = allDepts.filter(d => byDept[d] && byDept[d].length > 0);
+
+  if (!deptsWithAudits.length) {
+    body.innerHTML = `<div class="dash-empty"><div class="icon">📊</div><p>No audits saved yet.</p></div>`;
+    return;
+  }
+
+  body.innerHTML = deptsWithAudits.map(dept => {
+    const audits  = byDept[dept];
+    const latest  = audits[0];
+    const itemCnt = latest.sections.reduce((n, s) => n + s.items.length, 0);
+    const avg     = itemCnt > 0 ? latest.total / itemCnt : 0;
+    const avgStr  = avg.toFixed(1);
+
+    // Color pill
+    let pillCls = 'dash-pill-gray';
+    if (avg >= 4.0)      pillCls = 'dash-pill-green';
+    else if (avg >= 3.0) pillCls = 'dash-pill-amber';
+    else                 pillCls = 'dash-pill-red';
+
+    // Trend arrow
+    let trendHtml = '';
+    if (audits.length >= 2) {
+      const prev     = audits[1];
+      const prevCnt  = prev.sections.reduce((n, s) => n + s.items.length, 0);
+      const prevAvg  = prevCnt > 0 ? prev.total / prevCnt : 0;
+      const diff     = avg - prevAvg;
+      if (diff > 0.05)       trendHtml = '<span class="dash-trend trend-up">↑</span>';
+      else if (diff < -0.05) trendHtml = '<span class="dash-trend trend-down">↓</span>';
+      else                   trendHtml = '<span class="dash-trend trend-flat">→</span>';
+    }
+
+    return `
+      <div class="dash-dept-row" onclick="openDeptLatest('${dept.replace(/'/g,"\\'")}')">
+        <div class="dash-dept-name">${dept}</div>
+        <div class="dash-right">
+          <span class="dash-score-pill ${pillCls}">${avgStr}</span>
+          ${trendHtml}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openDeptLatest(dept) {
+  const all    = getAllAudits();
+  const audits = all.filter(a => a.dept === dept)
+                    .sort((a, b) => (b.savedAt || b.date || '') > (a.savedAt || a.date || '') ? 1 : -1);
+  if (!audits.length) return;
+  loadAudit(audits[0].id);
+}
+
+// ══════════════════════════════════════════════════════════
+// BUILD AUDIT FORM
+// ══════════════════════════════════════════════════════════
 function onDeptChange() {
   activeDept = document.getElementById('f-dept').value;
-  scores = {};
+  scores  = {};
   savedId = null;
   renderSections();
 }
 
 function renderSections() {
   const wrap = document.getElementById('sections-container');
-  const dept = activeDept;
 
-  if (!dept) {
+  if (!activeDept) {
     wrap.innerHTML = '<div class="pick-dept"><div class="icon">📋</div><p>Select a department above<br>to load the audit checklist.</p></div>';
+    hideAuditButtons();
     document.getElementById('total-box').style.display = 'none';
-    document.getElementById('btn-row').style.display = 'none';
-    document.getElementById('export-row').style.display = 'none';
-    document.getElementById('new-audit-row').style.display = 'none';
+    document.getElementById('sticky-score').classList.remove('visible');
     return;
   }
 
-  const sections = getSections(dept);
+  const pd       = PLANT_DATA[activePlant];
+  const sections = pd.getSections(activeDept);
+
   wrap.innerHTML = sections.map(sec => `
     <div class="section-card ${sec.cls}" id="sc-${sec.key}">
       <div class="section-hd">
@@ -785,29 +1236,56 @@ function renderSections() {
           <div class="item-label">${item}</div>
           <div class="score-row" id="sr-${sec.key}-${i}">
             ${[0,1,2,3,4,5].map(n => `
-              <button class="score-btn" data-sec="${sec.key}" data-idx="${i}" data-val="${n}"
-                onclick="setScore('${sec.key}',${i},${n})">${n}</button>
+              <button class="score-btn" onclick="setScore('${sec.key}',${i},${n})">${n}</button>
             `).join('')}
           </div>
-          <div class="remarks-lbl">Remarks</div>
-          <textarea class="remarks-input" id="rm-${sec.key}-${i}"
-            placeholder="Optional notes…" rows="2"
-            oninput="updateRemarks('${sec.key}',${i},this.value)"></textarea>
+          <div class="note-lbl">Note (optional)</div>
+          <input type="text" class="note-input" id="rm-${sec.key}-${i}"
+            placeholder="e.g. missing label on station 3"
+            oninput="updateRemarks('${sec.key}',${i},this.value)">
         </div>
       `).join('')}
+      <div class="section-footer">
+        <span class="sec-foot-lbl">${sec.label}:</span>
+        <span class="sec-foot-val" id="foot-${sec.key}">0 / ${sec.items.length * 5}</span>
+        <div class="sec-mini-bar-wrap">
+          <div class="sec-mini-bar-fill" id="footbar-${sec.key}" style="width:0%"></div>
+        </div>
+      </div>
     </div>
   `).join('');
 
   document.getElementById('total-box').style.display = 'block';
   document.getElementById('btn-row').style.display   = 'flex';
-  document.getElementById('export-row').style.display = 'none';
+  document.getElementById('export-row').style.display    = 'none';
   document.getElementById('new-audit-row').style.display = 'none';
+
+  // Show sticky score bar
+  document.getElementById('sticky-dept-name').textContent = activeDept;
+  document.getElementById('sticky-score').classList.add('visible');
+
   recalcTotals();
 }
 
-// ──────────────────────────────────────────────────────────
+function hideAuditButtons() {
+  document.getElementById('btn-row').style.display        = 'none';
+  document.getElementById('export-row').style.display     = 'none';
+  document.getElementById('new-audit-row').style.display  = 'none';
+}
+
+function resetAuditView() {
+  document.getElementById('f-dept').value = '';
+  activeDept = '';
+  scores     = {};
+  savedId    = null;
+  renderSections();
+  document.getElementById('total-box').style.display = 'none';
+  hideAuditButtons();
+}
+
+// ══════════════════════════════════════════════════════════
 // SCORING
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 function setScore(sec, idx, val) {
   const key = `${sec}-${idx}`;
   if (!scores[key]) scores[key] = { score: null, remarks: '' };
@@ -828,7 +1306,7 @@ function updateRemarks(sec, idx, val) {
 
 function recalcTotals() {
   if (!activeDept) return;
-  const sections = getSections(activeDept);
+  const sections = PLANT_DATA[activePlant].getSections(activeDept);
   let grand = 0, maxTotal = 0;
 
   sections.forEach(sec => {
@@ -840,24 +1318,37 @@ function recalcTotals() {
     const secMax = sec.items.length * 5;
     grand    += secSum;
     maxTotal += secMax;
+
     const badge = document.getElementById(`badge-${sec.key}`);
     if (badge) badge.textContent = `${secSum} / ${secMax}`;
+
+    const foot = document.getElementById(`foot-${sec.key}`);
+    if (foot) foot.textContent = `${secSum} / ${secMax}`;
+
+    const bar = document.getElementById(`footbar-${sec.key}`);
+    if (bar) bar.style.width = (secMax > 0 ? (secSum / secMax * 100) : 0) + '%';
   });
 
   const itemCount = maxTotal / 5;
-  const avg = itemCount > 0 ? (grand / itemCount).toFixed(1) : '0.0';
+  const avg       = itemCount > 0 ? (grand / itemCount).toFixed(1) : '0.0';
+
   document.getElementById('t-num').textContent = grand;
   document.getElementById('t-avg').textContent = avg;
+
+  // Update sticky bar
+  document.getElementById('sticky-total').textContent = grand;
+  document.getElementById('sticky-avg').textContent   = avg;
 }
 
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 // SAVE
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 function saveAudit() {
   const dept = document.getElementById('f-dept').value;
   if (!dept) { toast('Select a department first', 'err'); return; }
 
-  const sections = getSections(dept);
+  const pd       = PLANT_DATA[activePlant];
+  const sections = pd.getSections(dept);
   let grand = 0, maxTotal = 0;
 
   const secData = sections.map(sec => {
@@ -870,55 +1361,52 @@ function saveAudit() {
     return { key: sec.key, label: sec.label, items };
   });
 
-  const id = savedId || String(Date.now());
-  savedId = id;
+  const id  = savedId || String(Date.now());
+  savedId   = id;
 
   const audit = {
     id,
+    plant:   activePlant,
     dept,
     auditor: document.getElementById('f-auditor').value.trim() || 'Chase S.',
     date:    document.getElementById('f-date').value,
     time:    document.getElementById('f-time').value,
     sections: secData,
-    total: grand,
-    max:   maxTotal,
+    total:   grand,
+    max:     maxTotal,
     savedAt: new Date().toISOString(),
   };
 
-  const all = getAll();
+  const all = getAllAudits();
   const idx = all.findIndex(a => a.id === id);
   if (idx >= 0) all[idx] = audit; else all.unshift(audit);
-  localStorage.setItem('tag5s', JSON.stringify(all));
+  localStorage.setItem(pd.storageKey, JSON.stringify(all));
 
-  document.getElementById('export-row').style.display = 'flex';
+  document.getElementById('export-row').style.display    = 'flex';
   document.getElementById('new-audit-row').style.display = 'flex';
   toast('Audit saved!', 'ok');
 }
 
 function newAudit() {
-  document.getElementById('f-dept').value = '';
   document.getElementById('f-auditor').value = 'Chase S.';
   const today = new Date();
-  document.getElementById('f-date').value = today.toISOString().slice(0,10);
-  document.getElementById('f-time').value = today.toTimeString().slice(0,5);
-  scores = {};
-  activeDept = '';
-  savedId = null;
-  renderSections();
-  document.getElementById('total-box').style.display = 'none';
-  document.getElementById('btn-row').style.display = 'none';
-  document.getElementById('export-row').style.display = 'none';
-  document.getElementById('new-audit-row').style.display = 'none';
+  document.getElementById('f-date').value = today.toISOString().slice(0, 10);
+  document.getElementById('f-time').value = today.toTimeString().slice(0, 5);
+  resetAuditView();
   window.scrollTo(0, 0);
 }
 
-function getAll() {
-  try { return JSON.parse(localStorage.getItem('tag5s') || '[]'); } catch { return []; }
+function getAllAudits() {
+  const key = PLANT_DATA[activePlant].storageKey;
+  try {
+    const data = JSON.parse(localStorage.getItem(key) || '[]');
+    return data.map(a => ({ plant: activePlant, ...a }));
+  } catch { return []; }
 }
 
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 // EXCEL EXPORT
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 function fmtDate(d) {
   if (!d) return '';
   const p = d.split('-');
@@ -926,22 +1414,19 @@ function fmtDate(d) {
 }
 
 function buildAuditSheet(ws, a) {
-  const isBurn    = BURN_DEPTS.has(a.dept);
-  const itemCount = a.sections.reduce((n, s) => n + s.items.length, 0);
-  const avg       = itemCount > 0 ? (a.total / itemCount).toFixed(1) : '0.0';
+  const pd      = PLANT_DATA[a.plant || activePlant];
+  const isBurn  = pd.burnDepts.has(a.dept);
+  const itemCnt = a.sections.reduce((n, s) => n + s.items.length, 0);
+  const avg     = itemCnt > 0 ? (a.total / itemCnt).toFixed(1) : '0.0';
 
-  ws.columns = [
-    { width: 7.14  }, { width: 13.29 }, { width: 8     },
-    { width: 43.14 }, { width: 5     }, { width: 8     },
-    { width: 10    }, { width: 8     }, { width: 29    },
-  ];
+  ws.columns = pd.colWidths;
 
   ws.pageSetup.paperSize   = 1;
   ws.pageSetup.orientation = 'landscape';
   ws.pageSetup.fitToPage   = true;
   ws.pageSetup.fitToWidth  = 1;
   ws.pageSetup.fitToHeight = 1;
-  ws.pageSetup.margins = { left: 0.25, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 };
+  ws.pageSetup.margins = { left:0.25, right:0.25, top:0.5, bottom:0.5, header:0.3, footer:0.3 };
 
   const NAVY   = { argb: 'FF305496' };
   const YELLOW = { argb: 'FFFFFF00' };
@@ -953,11 +1438,11 @@ function buildAuditSheet(ws, a) {
 
   let r = 1;
 
-  // Title row
+  // Title
   ws.mergeCells('A1:I2');
   const tc = bc(ws.getCell('A1'));
-  tc.value = '5S Audit Form - ' + a.dept;
-  tc.font  = { bold: true, size: 16 };
+  tc.value     = '5S Audit Form - ' + a.dept;
+  tc.font      = { bold: true, size: 16 };
   tc.alignment = { horizontal: 'center', vertical: 'middle' };
   ws.getRow(1).height = 20;
   ws.getRow(2).height = 11.25;
@@ -971,8 +1456,7 @@ function buildAuditSheet(ws, a) {
   bc(ws.getCell(`F${r}`));
   ws.mergeCells(`G${r}:I${r}`);
   bc(ws.getCell(`G${r}`));
-  ws.getRow(r).height = 15;
-  r++;
+  ws.getRow(r).height = 15; r++;
 
   // Auditor / Date / Time
   bc(ws.getCell(`A${r}`)).value = 'Auditor:';
@@ -983,8 +1467,7 @@ function buildAuditSheet(ws, a) {
   bc(ws.getCell(`G${r}`)).value = fmtDate(a.date);
   bc(ws.getCell(`H${r}`)).value = 'Time:';
   bc(ws.getCell(`I${r}`)).value = a.time;
-  ws.getRow(r).height = 15;
-  r++;
+  ws.getRow(r).height = 15; r++;
 
   // Sections
   a.sections.forEach(sec => {
@@ -1003,8 +1486,7 @@ function buildAuditSheet(ws, a) {
     sr.value = 'Remarks';
     sr.font  = { size: 11, color: WHITE };
     sr.fill  = { type: 'pattern', pattern: 'solid', fgColor: NAVY };
-    ws.getRow(r).height = 15;
-    r++;
+    ws.getRow(r).height = 15; r++;
 
     sec.items.forEach(item => {
       ws.mergeCells(`A${r}:D${r}`);
@@ -1014,8 +1496,7 @@ function buildAuditSheet(ws, a) {
       ie.value     = (item.score !== null && item.score !== undefined) ? item.score : null;
       ie.alignment = { horizontal: 'center' };
       bc(ws.getCell(`F${r}`)).value = item.remarks || null;
-      ws.getRow(r).height = 15;
-      r++;
+      ws.getRow(r).height = 15; r++;
     });
 
     if (sec.key === 'shine' && !isBurn) {
@@ -1024,8 +1505,7 @@ function buildAuditSheet(ws, a) {
       bc(ws.getCell(`A${r}`));
       bc(ws.getCell(`E${r}`));
       bc(ws.getCell(`F${r}`));
-      ws.getRow(r).height = 15;
-      r++;
+      ws.getRow(r).height = 15; r++;
     }
   });
 
@@ -1040,8 +1520,7 @@ function buildAuditSheet(ws, a) {
   const te = bc(ws.getCell(`E${r}`));
   te.value = a.total; te.alignment = { horizontal: 'center' };
   bc(ws.getCell(`F${r}`));
-  ws.getRow(r).height = 15;
-  r++;
+  ws.getRow(r).height = 15; r++;
 
   // Overall Score row
   ws.mergeCells(`A${r}:C${r}`);
@@ -1054,14 +1533,12 @@ function buildAuditSheet(ws, a) {
   const oe = bc(ws.getCell(`E${r}`));
   oe.value = parseFloat(avg); oe.alignment = { horizontal: 'center' };
   bc(ws.getCell(`F${r}`));
-  ws.getRow(r).height = 15;
-  r++;
+  ws.getRow(r).height = 15; r++;
 
   // Blank separator
   ws.mergeCells(`A${r}:I${r}`);
   bc(ws.getCell(`A${r}`));
-  ws.getRow(r).height = 15;
-  r++;
+  ws.getRow(r).height = 15; r++;
 
   // Legend
   [
@@ -1075,8 +1552,7 @@ function buildAuditSheet(ws, a) {
     bc(ws.getCell(`A${r}`)).value = num;
     bc(ws.getCell(`B${r}`)).value = lbl;
     bc(ws.getCell(`C${r}`)).value = desc;
-    ws.getRow(r).height = 15;
-    r++;
+    ws.getRow(r).height = 15; r++;
   });
 }
 
@@ -1084,7 +1560,8 @@ async function exportCurrent() {
   const dept = document.getElementById('f-dept').value;
   if (!dept) { toast('Select a department first', 'err'); return; }
 
-  const sections = getSections(dept);
+  const pd       = PLANT_DATA[activePlant];
+  const sections = pd.getSections(dept);
   let grand = 0, maxTotal = 0;
   const secData = sections.map(sec => {
     const items = sec.items.map((label, i) => {
@@ -1097,20 +1574,21 @@ async function exportCurrent() {
   });
 
   await doExport({
+    plant:   activePlant,
     dept,
     auditor: document.getElementById('f-auditor').value.trim() || 'Chase S.',
     date:    document.getElementById('f-date').value,
     time:    document.getElementById('f-time').value,
     sections: secData,
     total: grand,
-    max: maxTotal,
+    max:   maxTotal,
   });
 }
 
 async function doExport(a) {
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet('5S Audit');
-  buildAuditSheet(ws, a);
+  const suffix = PLANT_DATA[a.plant || activePlant].exportSuffix;
+  const wb     = new ExcelJS.Workbook();
+  buildAuditSheet(wb.addWorksheet('5S Audit'), a);
   const buffer = await wb.xlsx.writeBuffer();
   const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url    = URL.createObjectURL(blob);
@@ -1119,21 +1597,22 @@ async function doExport(a) {
   const month  = d.toLocaleString('en-US', { month: 'long' });
   const safe   = a.dept.replace(/[\/\\?%*:|"<>]/g, '-');
   link.href     = url;
-  link.download = `${d.getFullYear()}-${month}-${safe}.xlsx`;
+  link.download = `${d.getFullYear()}-${month}-${safe}-${suffix}.xlsx`;
   link.click();
   URL.revokeObjectURL(url);
   toast('Excel file downloaded!', 'ok');
 }
 
 async function exportById(id) {
-  const a = getAll().find(x => x.id === id);
+  const a = getAllAudits().find(x => x.id === id);
   if (a) await doExport(a);
 }
 
 async function exportFullWorkbook() {
-  const all = getAll();
+  const all = getAllAudits();
   if (!all.length) { toast('No saved audits yet', 'err'); return; }
 
+  const suffix = PLANT_DATA[activePlant].exportSuffix;
   const status = document.getElementById('workbook-status');
   status.style.display = 'block';
   status.textContent   = 'Building workbook…';
@@ -1154,19 +1633,19 @@ async function exportFullWorkbook() {
   const url    = URL.createObjectURL(blob);
   const link   = document.createElement('a');
   link.href     = url;
-  link.download = `${year}-${month}-AuditsP2.xlsx`;
+  link.download = `${year}-${month}-Audits${suffix}.xlsx`;
   link.click();
   URL.revokeObjectURL(url);
 
-  status.textContent = `✓ Exported ${all.length} department${all.length > 1 ? 's' : ''} → ${year}-${month}-AuditsP2.xlsx`;
+  status.textContent = `✓ Exported ${all.length} audit${all.length > 1 ? 's' : ''} → ${year}-${month}-Audits${suffix}.xlsx`;
   toast('Full workbook downloaded!', 'ok');
 }
 
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 // HISTORY
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 function renderHistory() {
-  const all  = getAll();
+  const all  = getAllAudits();
   const wrap = document.getElementById('hist-wrap');
 
   if (!all.length) {
@@ -1179,7 +1658,7 @@ function renderHistory() {
   }
 
   wrap.innerHTML = all.map(a => {
-    const pct = a.max ? Math.round((a.total / a.max) * 100) : 0;
+    const pct   = a.max ? Math.round((a.total / a.max) * 100) : 0;
     const parts = [a.date, a.time, a.auditor].filter(Boolean);
     return `
       <div class="hist-card">
@@ -1198,8 +1677,15 @@ function renderHistory() {
 }
 
 function loadAudit(id) {
-  const a = getAll().find(x => x.id === id);
+  const a = getAllAudits().find(x => x.id === id);
   if (!a) return;
+
+  // If audit belongs to a different plant, switch first
+  if (a.plant && a.plant !== activePlant) {
+    activePlant = a.plant;
+    localStorage.setItem('tag5s-active-plant', activePlant);
+    applyPlantUI();
+  }
 
   switchTab('audit');
 
@@ -1209,11 +1695,10 @@ function loadAudit(id) {
   document.getElementById('f-time').value    = a.time    || '';
 
   activeDept = a.dept;
-  scores = {};
-  savedId = a.id;
+  scores     = {};
+  savedId    = a.id;
   renderSections();
 
-  // Restore scores after DOM is built
   requestAnimationFrame(() => {
     a.sections.forEach(sec => {
       sec.items.forEach((item, i) => {
@@ -1222,39 +1707,37 @@ function loadAudit(id) {
         }
         if (item.remarks) {
           const el = document.getElementById(`rm-${sec.key}-${i}`);
-          if (el) {
-            el.value = item.remarks;
-            updateRemarks(sec.key, i, item.remarks);
-          }
+          if (el) { el.value = item.remarks; updateRemarks(sec.key, i, item.remarks); }
         }
       });
     });
-    document.getElementById('export-row').style.display = 'flex';
+    document.getElementById('export-row').style.display    = 'flex';
     document.getElementById('new-audit-row').style.display = 'flex';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 }
 
 function deleteAudit(id) {
-  const all = getAll().filter(a => a.id !== id);
-  localStorage.setItem('tag5s', JSON.stringify(all));
+  const pd  = PLANT_DATA[activePlant];
+  const all = getAllAudits().filter(a => a.id !== id);
+  localStorage.setItem(pd.storageKey, JSON.stringify(all));
   renderHistory();
   toast('Audit deleted');
 }
 
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 // CLEAR FORM
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 function clearForm() {
-  scores = {};
+  scores  = {};
   savedId = null;
   renderSections();
   toast('Audit cleared');
 }
 
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 // DIALOGS
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 let dlgCallback = null;
 
 function openDlg(title, msg, cb) {
@@ -1272,22 +1755,37 @@ document.getElementById('dlg-ok').addEventListener('click', () => {
   closeDlg();
   if (cb) cb();
 });
+function confirmClear()    { openDlg('Clear Audit', 'Clear all scores and notes? Your department selection is kept.', clearForm); }
+function confirmDelete(id) { openDlg('Delete Audit', 'Permanently delete this audit? This cannot be undone.', () => deleteAudit(id)); }
 
-function confirmClear()       { openDlg('Clear Audit', 'Clear all scores and remarks? Your department selection is kept.', clearForm); }
-function confirmDelete(id)    { openDlg('Delete Audit', 'Permanently delete this audit? This cannot be undone.', () => deleteAudit(id)); }
-
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 // TOAST
-// ──────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
 let toastTimer;
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.className = 'toast show' + (type ? ' ' + type : '');
+  el.className   = 'toast show' + (type ? ' ' + type : '');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
 }
+
+// ══════════════════════════════════════════════════════════
+// OFFLINE INDICATOR
+// ══════════════════════════════════════════════════════════
+function updateOffline() {
+  const banner = document.getElementById('offline-banner');
+  if (navigator.onLine) {
+    banner.classList.remove('show');
+  } else {
+    banner.classList.add('show');
+  }
+}
+window.addEventListener('online',  () => { updateOffline(); toast('Back online', 'ok'); });
+window.addEventListener('offline', () => { updateOffline(); toast('No internet — offline mode', 'err'); });
+updateOffline();
 </script>
+
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
