@@ -1413,6 +1413,16 @@ function fmtDate(d) {
   return p.length === 3 ? `${p[1]}/${p[2]}/${p[0]}` : d;
 }
 
+function fmtTime(t) {
+  if (!t) return '';
+  const [hStr, mStr] = t.split(':');
+  const h = parseInt(hStr, 10);
+  const m = mStr || '00';
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12  = h % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
+}
+
 function buildAuditSheet(ws, a) {
   const pd      = PLANT_DATA[a.plant || activePlant];
   const isBurn  = pd.burnDepts.has(a.dept);
@@ -1466,7 +1476,7 @@ function buildAuditSheet(ws, a) {
   bc(ws.getCell(`F${r}`)).value = 'Date:';
   bc(ws.getCell(`G${r}`)).value = fmtDate(a.date);
   bc(ws.getCell(`H${r}`)).value = 'Time:';
-  bc(ws.getCell(`I${r}`)).value = a.time;
+  bc(ws.getCell(`I${r}`)).value = fmtTime(a.time);
   ws.getRow(r).height = 15; r++;
 
   // Sections
