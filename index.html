@@ -1628,8 +1628,11 @@ async function exportFullWorkbook() {
   status.textContent   = 'Building workbook…';
 
   const wb = new ExcelJS.Workbook();
+  const sheetNameCount = {};
   for (const a of all) {
-    const sheetName = a.dept.replace(/[\/\\*\[\]:?]/g, '-').slice(0, 31);
+    let base = a.dept.replace(/[\/\\*\[\]:?]/g, '-').slice(0, 28);
+    sheetNameCount[base] = (sheetNameCount[base] || 0) + 1;
+    const sheetName = sheetNameCount[base] > 1 ? `${base} (${sheetNameCount[base]})` : base;
     buildAuditSheet(wb.addWorksheet(sheetName), a);
   }
 
@@ -1655,8 +1658,11 @@ async function exportFullWorkbook() {
 // HISTORY
 // ══════════════════════════════════════════════════════════
 function renderHistory() {
-  const all  = getAllAudits();
-  const wrap = document.getElementById('hist-wrap');
+  const all    = getAllAudits();
+  const wrap   = document.getElementById('hist-wrap');
+  const status = document.getElementById('workbook-status');
+  status.style.display = 'none';
+  status.textContent   = '';
 
   if (!all.length) {
     wrap.innerHTML = `
@@ -1669,7 +1675,7 @@ function renderHistory() {
 
   wrap.innerHTML = all.map(a => {
     const pct   = a.max ? Math.round((a.total / a.max) * 100) : 0;
-    const parts = [a.date, a.time, a.auditor].filter(Boolean);
+    const parts = [fmtDate(a.date), fmtTime(a.time), a.auditor].filter(Boolean);
     return `
       <div class="hist-card">
         <div class="hist-card-top">
