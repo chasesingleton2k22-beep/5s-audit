@@ -910,8 +910,7 @@ body {
       <button class="btn btn-navy"    onclick="saveAudit()">Save Audit</button>
     </div>
     <div class="btn-row" id="export-row" style="display:none">
-      <button class="btn btn-amber"   onclick="exportCurrent()">Export to Excel</button>
-      <button class="btn btn-outline" onclick="shareCurrent()">📤 Share</button>
+      <button class="btn btn-amber" onclick="exportCurrent()">Export to Excel</button>
     </div>
     <div class="btn-row" id="new-audit-row" style="display:none">
       <button class="btn btn-outline" onclick="switchTab('history')">View History</button>
@@ -936,8 +935,7 @@ body {
       </span>
     </div>
     <div class="btn-row" id="bulk-bar" style="display:none;margin-bottom:10px">
-      <button class="btn btn-amber"   onclick="exportSelected()">Export Selected</button>
-      <button class="btn btn-outline" onclick="shareSelected()">📤 Share Selected</button>
+      <button class="btn btn-amber" onclick="exportSelected()">Export Selected</button>
     </div>
   </div>
   <div class="hist-wrap" id="hist-wrap"></div>
@@ -2096,124 +2094,8 @@ async function exportById(id) {
   if (a) await doExport(a);
 }
 
-// ══════════════════════════════════════════════════════════
-// SHARE (native share sheet — email, text, AirDrop, etc.)
-// ══════════════════════════════════════════════════════════
-// The Web Share API only works while the tap that triggered it is still
-// "fresh" — browsers time out that permission window (a few seconds) while
-// we build the .xlsx (reading photos out of IndexedDB, encoding the buffer).
-// On audits with several photos that build can outlast the window, so
-// navigator.share() throws NotAllowedError. When that happens we keep the
-// already-built file and let the NEXT tap send it immediately — no rebuild,
-// so that tap's gesture window is never at risk.
-let pendingShare = null; // { kind, blob, filename, title, builtAt }
-
-async function shareViaFile(blob, filename, title) {
-  if (!('share' in navigator)) {
-    downloadBlob(blob, filename);
-    toast('This browser has no share feature — downloaded instead', 'err');
-    return true;
-  }
-
-  const file = new File([blob], filename, { type: blob.type });
-  let canShareFile = false;
-  try { canShareFile = !!(navigator.canShare && navigator.canShare({ files: [file] })); }
-  catch { canShareFile = false; }
-
-  if (!canShareFile) {
-    downloadBlob(blob, filename);
-    toast("This browser won't attach an Excel file to share — downloaded instead", 'err');
-    return true;
-  }
-
-  try {
-    await navigator.share({ files: [file], title });
-    return true;
-  } catch (err) {
-    if (err && err.name === 'AbortError') return true; // user cancelled — not an error
-    console.warn('share() failed:', err && err.name, err && err.message);
-    window.__lastShareError = err && (err.name + ': ' + err.message); // for on-device inspection
-    return false; // most likely a stale user-gesture window — caller may retry
-  }
-}
-
-const PENDING_SHARE_TTL_MS = 45000; // stale after this — re-tapping rebuilds fresh instead of sending old data
-
-async function requestShare(kind, buildFn) {
-  // Retry tap: file is already built from last time — share it immediately,
-  // with zero async work before the share() call, so the gesture is fresh.
-  if (pendingShare && pendingShare.kind === kind && (Date.now() - pendingShare.builtAt) < PENDING_SHARE_TTL_MS) {
-    const { blob, filename, title } = pendingShare;
-    pendingShare = null;
-    const ok = await shareViaFile(blob, filename, title);
-    if (!ok) {
-      const reason = window.__lastShareError ? ' (' + window.__lastShareError + ')' : '';
-      toast('Still could not share' + reason + ' — downloading instead', 'err');
-      downloadBlob(blob, filename);
-    }
-    return;
-  }
-  pendingShare = null;
-
-  toast('Preparing file…');
-  let built;
-  try {
-    built = await buildFn();
-  } catch (err) {
-    toast('Could not prepare the file to share', 'err');
-    return;
-  }
-  const { blob, filename, title } = built;
-  const ok = await shareViaFile(blob, filename, title);
-  if (!ok) {
-    pendingShare = { kind, blob, filename, title, builtAt: Date.now() };
-    toast('File ready — tap Share once more to send it', 'ok');
-  }
-}
-
-async function shareAudit(id) {
-  await requestShare('id:' + id, async () => {
-    const a = getAllAudits().find(x => x.id === id);
-    if (!a) throw new Error('Audit not found');
-    const { blob, filename } = await buildExportBlob(a);
-    return { blob, filename, title: '5S Audit — ' + a.dept };
-  });
-}
-
-async function shareCurrent() {
-  const dept = document.getElementById('f-dept').value;
-  if (!dept) { toast('Select a department first', 'err'); return; }
-
-  await requestShare('current', async () => {
-    const pd       = PLANT_DATA[activePlant];
-    const sections = pd.getSections(dept);
-    let grand = 0, maxTotal = 0;
-    const secData = sections.map(sec => {
-      const items = sec.items.map((label, i) => {
-        const s = scores[`${sec.key}-${i}`] || { score: null, remarks: '', photos: [] };
-        if (s.score !== null) grand += s.score;
-        maxTotal += 5;
-        return { label, score: s.score, remarks: s.remarks, photos: s.photos || [] };
-      });
-      return { key: sec.key, label: sec.label, items };
-    });
-
-    const { blob, filename } = await buildExportBlob({
-      plant:   activePlant,
-      dept,
-      auditor: document.getElementById('f-auditor').value.trim() || 'Chase S.',
-      date:    document.getElementById('f-date').value,
-      time:    document.getElementById('f-time').value,
-      sections: secData,
-      total: grand,
-      max:   maxTotal,
-    });
-    return { blob, filename, title: '5S Audit — ' + dept };
-  });
-}
-
-// Shared by "Export Full Workbook" and "Export/Share Selected" so the two
-// paths can never drift apart on sheet naming or photo-appendix handling.
+// Shared by "Export Full Workbook" and "Export Selected" so the two paths
+// can never drift apart on sheet naming or photo-appendix handling.
 async function buildMultiSheetWorkbook(audits) {
   const wb = new ExcelJS.Workbook();
   const sheetNameCount = {};
@@ -2255,7 +2137,7 @@ async function exportFullWorkbook() {
 }
 
 // ══════════════════════════════════════════════════════════
-// BULK SELECT (export / share several audits at once)
+// BULK SELECT (export several audits at once)
 // ══════════════════════════════════════════════════════════
 function toggleAuditSelect(id, checked) {
   if (checked) selectedAuditIds.add(id); else selectedAuditIds.delete(id);
@@ -2296,19 +2178,6 @@ async function exportSelected() {
   const blob     = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   downloadBlob(blob, filename);
   toast(`Exported ${selected.length} audit${selected.length > 1 ? 's' : ''}!`, 'ok');
-}
-
-async function shareSelected() {
-  const selected = getSelectedAudits();
-  if (!selected.length) { toast('No audits selected', 'err'); return; }
-
-  await requestShare('selected', async () => {
-    const wb       = await buildMultiSheetWorkbook(selected);
-    const filename = multiAuditFilename(selected, 'SelectedAudits');
-    const buffer   = await wb.xlsx.writeBuffer();
-    const blob     = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    return { blob, filename, title: `${selected.length} 5S Audits` };
-  });
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2357,7 +2226,6 @@ function renderHistory() {
         <div class="hist-meta">${parts.join(' &bull; ')}</div>
         <div class="hist-actions">
           <button class="btn-sm btn-sm-amber"   onclick="exportById('${a.id}')">Export Excel</button>
-          <button class="btn-sm btn-sm-outline"  onclick="shareAudit('${a.id}')">📤 Share</button>
           <button class="btn-sm btn-sm-outline"  onclick="loadAudit('${a.id}')">View / Edit</button>
           <button class="btn-sm btn-sm-red"      onclick="confirmDelete('${a.id}')">Delete</button>
         </div>
