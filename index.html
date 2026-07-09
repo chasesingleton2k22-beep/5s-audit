@@ -241,6 +241,40 @@ body {
   color: #9ca3af;
   font-style: italic;
 }
+.dash-progress-wrap {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.dash-progress-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.dash-progress-lbl {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.dash-progress-left {
+  font-size: .78rem;
+  font-weight: 800;
+  color: var(--amber2);
+}
+.dash-progress-left.done { color: var(--green); }
+.dash-progress-bar-wrap {
+  height: 10px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.dash-progress-bar-fill {
+  height: 100%;
+  background: var(--amber2);
+  border-radius: 99px;
+  transition: width .25s ease;
+}
+.dash-progress-bar-fill.done { background: var(--green); }
 .dash-empty {
   text-align: center;
   padding: 48px 24px;
@@ -464,6 +498,81 @@ body {
   outline: none;
   border-color: var(--amber);
   background: #fff;
+}
+
+/* ── PHOTO ATTACHMENTS ──────────────────────────── */
+.photo-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 9px;
+}
+.photo-add-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1.5px dashed var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform .1s;
+}
+.photo-add-btn:active { transform: scale(.97); }
+.photo-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.photo-thumbs:empty { display: none; }
+.photo-thumb {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  cursor: pointer;
+}
+.photo-thumb-del {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,.65);
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.photo-viewer-img {
+  max-width: 94vw;
+  max-height: 88vh;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.6);
 }
 
 /* ── TOTAL SCORE BOX ────────────────────────────── */
@@ -807,6 +916,14 @@ body {
   </div>
 </div>
 
+<!-- ══════════════ PHOTO VIEWER ══════════════ -->
+<div class="overlay hidden" id="photo-overlay" onclick="closePhotoViewer()">
+  <img class="photo-viewer-img" id="photo-viewer-img" src="" alt="Audit photo">
+</div>
+
+<!-- ══════════════ HIDDEN PHOTO INPUT ══════════════ -->
+<input type="file" accept="image/*" capture="environment" id="photo-file-input" style="display:none">
+
 <!-- ══════════════ TOAST ══════════════ -->
 <div class="toast" id="toast"></div>
 
@@ -1028,12 +1145,173 @@ const PLANT_DATA = {
 };
 
 // ══════════════════════════════════════════════════════════
+// PHOTO STORAGE (IndexedDB — photos are too large for localStorage)
+// ══════════════════════════════════════════════════════════
+const PHOTO_DB_NAME  = 'tag5s-photos';
+const PHOTO_STORE     = 'photos';
+let   photoDBPromise  = null;
+
+function openPhotoDB() {
+  if (photoDBPromise) return photoDBPromise;
+  photoDBPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(PHOTO_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(PHOTO_STORE)) {
+        const store = db.createObjectStore(PHOTO_STORE, { keyPath: 'id' });
+        store.createIndex('auditId', 'auditId', { unique: false });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+  return photoDBPromise;
+}
+
+function idbPut(record) {
+  return openPhotoDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, 'readwrite');
+    tx.objectStore(PHOTO_STORE).put(record);
+    tx.oncomplete = () => resolve();
+    tx.onerror    = () => reject(tx.error);
+  }));
+}
+
+function idbGet(id) {
+  return openPhotoDB().then(db => new Promise((resolve, reject) => {
+    const req = db.transaction(PHOTO_STORE, 'readonly').objectStore(PHOTO_STORE).get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror   = () => reject(req.error);
+  }));
+}
+
+function idbDelete(id) {
+  return openPhotoDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, 'readwrite');
+    tx.objectStore(PHOTO_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror    = () => reject(tx.error);
+  }));
+}
+
+function idbGetAll() {
+  return openPhotoDB().then(db => new Promise((resolve, reject) => {
+    const req = db.transaction(PHOTO_STORE, 'readonly').objectStore(PHOTO_STORE).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror   = () => reject(req.error);
+  }));
+}
+
+function idbGetByAuditId(auditId) {
+  return openPhotoDB().then(db => new Promise((resolve, reject) => {
+    const idx = db.transaction(PHOTO_STORE, 'readonly').objectStore(PHOTO_STORE).index('auditId');
+    const req = idx.getAll(auditId);
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror   = () => reject(req.error);
+  }));
+}
+
+function savePhotoBlob(id, auditId, sectionKey, itemIdx, blob) {
+  return idbPut({ id, auditId, sectionKey, itemIdx, blob, createdAt: Date.now() });
+}
+
+function getPhotoBlob(id) {
+  return idbGet(id).then(r => r ? r.blob : null);
+}
+
+async function deletePhotosByIds(ids) {
+  for (const id of ids) { try { await idbDelete(id); } catch {} }
+}
+
+async function deletePhotosByAuditId(auditId) {
+  try {
+    const recs = await idbGetByAuditId(auditId);
+    await deletePhotosByIds(recs.map(r => r.id));
+  } catch {}
+}
+
+// Removes any stored photo not referenced by a saved audit — abandoned drafts,
+// or photos added while editing a saved audit but never re-saved. Runs at launch,
+// before any new photo is taken this session, so live drafts are never touched.
+async function gcOrphanPhotos() {
+  try {
+    const referenced = new Set();
+    ['tag5s', 'tag5s-p1'].forEach(key => {
+      try {
+        const arr = JSON.parse(localStorage.getItem(key) || '[]');
+        arr.forEach(a => (a.sections || []).forEach(s =>
+          (s.items || []).forEach(it =>
+            (it.photos || []).forEach(id => referenced.add(id)))));
+      } catch {}
+    });
+    const all = await idbGetAll();
+    const orphanIds = all.filter(r => !referenced.has(r.id)).map(r => r.id);
+    if (orphanIds.length) await deletePhotosByIds(orphanIds);
+  } catch {}
+}
+
+// Discards photos for the in-progress audit if it was never actually saved
+function discardUnsavedDraftPhotos() {
+  if (!savedId) return;
+  const currentId = savedId;
+  const persisted = getAllAudits().some(a => a.id === currentId);
+  if (!persisted) deletePhotosByAuditId(currentId);
+}
+
+async function compressImage(file) {
+  const MAX_DIM = 1600;
+  let width, height, drawSource, bitmap = null;
+  try {
+    bitmap = await createImageBitmap(file);
+    width = bitmap.width; height = bitmap.height; drawSource = bitmap;
+  } catch {
+    drawSource = await new Promise((resolve, reject) => {
+      const im  = new Image();
+      const url = URL.createObjectURL(file);
+      im.onload  = () => { resolve(im); URL.revokeObjectURL(url); };
+      im.onerror = reject;
+      im.src = url;
+    });
+    width = drawSource.naturalWidth; height = drawSource.naturalHeight;
+  }
+  const scale = Math.min(1, MAX_DIM / Math.max(width, height));
+  const outW  = Math.max(1, Math.round(width * scale));
+  const outH  = Math.max(1, Math.round(height * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = outW; canvas.height = outH;
+  canvas.getContext('2d').drawImage(drawSource, 0, 0, outW, outH);
+  if (bitmap && bitmap.close) bitmap.close();
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.72));
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function getImageDimensions(blob) {
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload  = () => { resolve({ width: img.naturalWidth || 320, height: img.naturalHeight || 240 }); URL.revokeObjectURL(url); };
+    img.onerror = () => { resolve({ width: 320, height: 240 }); URL.revokeObjectURL(url); };
+    img.src = url;
+  });
+}
+
+// ══════════════════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════════════════
 let activePlant = localStorage.getItem('tag5s-active-plant') || 'p2';
 let scores      = {};
 let activeDept  = '';
 let savedId     = null;
+let pendingPhotoTarget  = null;
+const photoThumbUrls    = {}; // "sec-idx" -> [blob urls currently shown], for revocation
 
 // ══════════════════════════════════════════════════════════
 // INIT
@@ -1044,6 +1322,7 @@ let savedId     = null;
   document.getElementById('f-time').value = now.toTimeString().slice(0, 5);
   applyPlantUI();
   renderDashboard();
+  gcOrphanPhotos();
 })();
 
 // ══════════════════════════════════════════════════════════
@@ -1051,6 +1330,7 @@ let savedId     = null;
 // ══════════════════════════════════════════════════════════
 function switchPlant(p) {
   if (p === activePlant) return;
+  discardUnsavedDraftPhotos();
   activePlant = p;
   localStorage.setItem('tag5s-active-plant', p);
 
@@ -1128,15 +1408,6 @@ function renderDashboard() {
   // Collect all dept names across groups
   const allDepts = pd.deptGroups.reduce((acc, g) => acc.concat(g.depts), []);
 
-  if (!all.length) {
-    body.innerHTML = `
-      <div class="dash-empty">
-        <div class="icon">📊</div>
-        <p>No audits saved yet for ${pd.label}.<br>Complete an audit to see scores here.</p>
-      </div>`;
-    return;
-  }
-
   // Group audits by dept, sorted newest first
   const byDept = {};
   all.forEach(a => {
@@ -1151,12 +1422,32 @@ function renderDashboard() {
   // Build rows — only depts that have audits
   const deptsWithAudits = allDepts.filter(d => byDept[d] && byDept[d].length > 0);
 
+  const doneCount = deptsWithAudits.length;
+  const totalCount = allDepts.length;
+  const leftCount = totalCount - doneCount;
+  const pct = totalCount > 0 ? (doneCount / totalCount * 100) : 0;
+  const allDone = leftCount === 0;
+  const progressHtml = `
+    <div class="dash-progress-wrap">
+      <div class="dash-progress-top">
+        <span class="dash-progress-lbl">${doneCount} of ${totalCount} departments audited</span>
+        <span class="dash-progress-left${allDone ? ' done' : ''}">${allDone ? 'All done!' : leftCount + ' left'}</span>
+      </div>
+      <div class="dash-progress-bar-wrap">
+        <div class="dash-progress-bar-fill${allDone ? ' done' : ''}" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+
   if (!deptsWithAudits.length) {
-    body.innerHTML = `<div class="dash-empty"><div class="icon">📊</div><p>No audits saved yet.</p></div>`;
+    body.innerHTML = progressHtml + `
+      <div class="dash-empty">
+        <div class="icon">📊</div>
+        <p>No audits saved yet for ${pd.label}.<br>Complete an audit to see scores here.</p>
+      </div>`;
     return;
   }
 
-  body.innerHTML = deptsWithAudits.map(dept => {
+  body.innerHTML = progressHtml + deptsWithAudits.map(dept => {
     const audits  = byDept[dept];
     const latest  = audits[0];
     const itemCnt = latest.sections.reduce((n, s) => n + s.items.length, 0);
@@ -1204,6 +1495,7 @@ function openDeptLatest(dept) {
 // BUILD AUDIT FORM
 // ══════════════════════════════════════════════════════════
 function onDeptChange() {
+  discardUnsavedDraftPhotos();
   activeDept = document.getElementById('f-dept').value;
   scores  = {};
   savedId = null;
@@ -1212,6 +1504,7 @@ function onDeptChange() {
 
 function renderSections() {
   const wrap = document.getElementById('sections-container');
+  revokeAllThumbUrls();
 
   if (!activeDept) {
     wrap.innerHTML = '<div class="pick-dept"><div class="icon">📋</div><p>Select a department above<br>to load the audit checklist.</p></div>';
@@ -1243,6 +1536,10 @@ function renderSections() {
           <input type="text" class="note-input" id="rm-${sec.key}-${i}"
             placeholder="e.g. missing label on station 3"
             oninput="updateRemarks('${sec.key}',${i},this.value)">
+          <div class="photo-row">
+            <button type="button" class="photo-add-btn" onclick="triggerPhoto('${sec.key}',${i})">📷 Add Photo</button>
+            <div class="photo-thumbs" id="pt-${sec.key}-${i}"></div>
+          </div>
         </div>
       `).join('')}
       <div class="section-footer">
@@ -1274,6 +1571,7 @@ function hideAuditButtons() {
 }
 
 function resetAuditView() {
+  discardUnsavedDraftPhotos();
   document.getElementById('f-dept').value = '';
   activeDept = '';
   scores     = {};
@@ -1286,10 +1584,15 @@ function resetAuditView() {
 // ══════════════════════════════════════════════════════════
 // SCORING
 // ══════════════════════════════════════════════════════════
+function ensureCell(key) {
+  if (!scores[key]) scores[key] = { score: null, remarks: '', photos: [] };
+  if (!scores[key].photos) scores[key].photos = [];
+  return scores[key];
+}
+
 function setScore(sec, idx, val) {
   const key = `${sec}-${idx}`;
-  if (!scores[key]) scores[key] = { score: null, remarks: '' };
-  scores[key].score = val;
+  ensureCell(key).score = val;
 
   const row = document.getElementById(`sr-${sec}-${idx}`);
   row.querySelectorAll('.score-btn').forEach((btn, i) => {
@@ -1300,8 +1603,88 @@ function setScore(sec, idx, val) {
 
 function updateRemarks(sec, idx, val) {
   const key = `${sec}-${idx}`;
-  if (!scores[key]) scores[key] = { score: null, remarks: '' };
-  scores[key].remarks = val;
+  ensureCell(key).remarks = val;
+}
+
+// ══════════════════════════════════════════════════════════
+// PHOTO CAPTURE
+// ══════════════════════════════════════════════════════════
+function triggerPhoto(sec, idx) {
+  pendingPhotoTarget = { sec, idx };
+  document.getElementById('photo-file-input').click();
+}
+
+document.getElementById('photo-file-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file || !pendingPhotoTarget) return;
+  const { sec, idx } = pendingPhotoTarget;
+  pendingPhotoTarget = null;
+
+  if (!savedId) savedId = String(Date.now());
+  const auditId = savedId;
+
+  try {
+    const blob = await compressImage(file);
+    if (!blob || !blob.size) throw new Error('image could not be processed');
+    const photoId = 'ph_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    await savePhotoBlob(photoId, auditId, sec, idx, blob);
+    ensureCell(`${sec}-${idx}`).photos.push(photoId);
+    await renderPhotoThumbs(sec, idx);
+    toast('Photo added', 'ok');
+  } catch (err) {
+    toast('Could not add photo', 'err');
+  }
+});
+
+async function renderPhotoThumbs(sec, idx) {
+  const key  = `${sec}-${idx}`;
+  const wrap = document.getElementById(`pt-${sec}-${idx}`);
+  if (!wrap) return;
+
+  (photoThumbUrls[key] || []).forEach(u => URL.revokeObjectURL(u));
+  photoThumbUrls[key] = [];
+
+  const ids   = (scores[key] && scores[key].photos) || [];
+  const blobs = await Promise.all(ids.map(id => getPhotoBlob(id)));
+
+  wrap.innerHTML = '';
+  ids.forEach((id, i) => {
+    const blob = blobs[i];
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    photoThumbUrls[key].push(url);
+    const div = document.createElement('div');
+    div.className = 'photo-thumb';
+    div.innerHTML = `<img src="${url}" onclick="openPhotoViewer('${url}')">` +
+      `<button type="button" class="photo-thumb-del" onclick="removePhoto('${sec}',${idx},'${id}')">&times;</button>`;
+    wrap.appendChild(div);
+  });
+}
+
+async function removePhoto(sec, idx, photoId) {
+  const key = `${sec}-${idx}`;
+  if (scores[key] && scores[key].photos) {
+    scores[key].photos = scores[key].photos.filter(id => id !== photoId);
+  }
+  await idbDelete(photoId);
+  await renderPhotoThumbs(sec, idx);
+}
+
+function openPhotoViewer(url) {
+  document.getElementById('photo-viewer-img').src = url;
+  document.getElementById('photo-overlay').classList.remove('hidden');
+}
+
+function closePhotoViewer() {
+  document.getElementById('photo-overlay').classList.add('hidden');
+}
+
+function revokeAllThumbUrls() {
+  Object.keys(photoThumbUrls).forEach(k => {
+    (photoThumbUrls[k] || []).forEach(u => URL.revokeObjectURL(u));
+    delete photoThumbUrls[k];
+  });
 }
 
 function recalcTotals() {
@@ -1353,10 +1736,10 @@ function saveAudit() {
 
   const secData = sections.map(sec => {
     const items = sec.items.map((label, i) => {
-      const s = scores[`${sec.key}-${i}`] || { score: null, remarks: '' };
+      const s = scores[`${sec.key}-${i}`] || { score: null, remarks: '', photos: [] };
       if (s.score !== null) grand += s.score;
       maxTotal += 5;
-      return { label, score: s.score, remarks: s.remarks };
+      return { label, score: s.score, remarks: s.remarks, photos: s.photos || [] };
     });
     return { key: sec.key, label: sec.label, items };
   });
@@ -1566,6 +1949,49 @@ function buildAuditSheet(ws, a) {
   });
 }
 
+async function buildPhotoAppendix(wb, sheetName, a) {
+  const entries = [];
+  a.sections.forEach(sec => {
+    sec.items.forEach(item => {
+      if (item.photos && item.photos.length) {
+        item.photos.forEach(id => entries.push({
+          sectionLabel: sec.label, itemLabel: item.label, remarks: item.remarks, id,
+        }));
+      }
+    });
+  });
+  if (!entries.length) return;
+
+  const ws = wb.addWorksheet(sheetName);
+  ws.columns = [{ width: 50 }];
+  let row = 1;
+
+  for (const entry of entries) {
+    const blob = await getPhotoBlob(entry.id);
+    if (!blob) continue;
+    const base64 = await blobToBase64(blob);
+    const dims   = await getImageDimensions(blob);
+
+    const capText = entry.sectionLabel + ' — ' + entry.itemLabel +
+      (entry.remarks ? ('  |  Note: ' + entry.remarks) : '');
+    const capCell = ws.getCell(`A${row}`);
+    capCell.value = capText;
+    capCell.font = { bold: true, size: 10 };
+    capCell.alignment = { wrapText: true, vertical: 'top' };
+    const estLines = Math.max(1, Math.ceil(capText.length / 48));
+    ws.getRow(row).height = Math.min(70, 14 * estLines + 4);
+    row += 1;
+
+    const displayW = 360;
+    const ratio    = (dims.width > 0) ? (dims.height / dims.width) : 0.75;
+    const displayH = Math.round(displayW * ratio);
+    const imgId = wb.addImage({ base64, extension: 'jpeg' });
+    ws.addImage(imgId, { tl: { col: 0, row: row - 1 }, ext: { width: displayW, height: displayH } });
+
+    row += Math.ceil(displayH / 20) + 2;
+  }
+}
+
 async function exportCurrent() {
   const dept = document.getElementById('f-dept').value;
   if (!dept) { toast('Select a department first', 'err'); return; }
@@ -1575,10 +2001,10 @@ async function exportCurrent() {
   let grand = 0, maxTotal = 0;
   const secData = sections.map(sec => {
     const items = sec.items.map((label, i) => {
-      const s = scores[`${sec.key}-${i}`] || { score: null, remarks: '' };
+      const s = scores[`${sec.key}-${i}`] || { score: null, remarks: '', photos: [] };
       if (s.score !== null) grand += s.score;
       maxTotal += 5;
-      return { label, score: s.score, remarks: s.remarks };
+      return { label, score: s.score, remarks: s.remarks, photos: s.photos || [] };
     });
     return { key: sec.key, label: sec.label, items };
   });
@@ -1599,6 +2025,7 @@ async function doExport(a) {
   const suffix = PLANT_DATA[a.plant || activePlant].exportSuffix;
   const wb     = new ExcelJS.Workbook();
   buildAuditSheet(wb.addWorksheet('5S Audit'), a);
+  await buildPhotoAppendix(wb, 'Photos', a);
   const buffer = await wb.xlsx.writeBuffer();
   const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url    = URL.createObjectURL(blob);
@@ -1634,6 +2061,7 @@ async function exportFullWorkbook() {
     sheetNameCount[base] = (sheetNameCount[base] || 0) + 1;
     const sheetName = sheetNameCount[base] > 1 ? `${base} (${sheetNameCount[base]})` : base;
     buildAuditSheet(wb.addWorksheet(sheetName), a);
+    await buildPhotoAppendix(wb, (sheetName + ' Photos').slice(0, 31), a);
   }
 
   const dates  = all.map(a => a.date).filter(Boolean).sort();
@@ -1696,6 +2124,8 @@ function loadAudit(id) {
   const a = getAllAudits().find(x => x.id === id);
   if (!a) return;
 
+  discardUnsavedDraftPhotos();
+
   // If audit belongs to a different plant, switch first
   if (a.plant && a.plant !== activePlant) {
     activePlant = a.plant;
@@ -1725,6 +2155,10 @@ function loadAudit(id) {
           const el = document.getElementById(`rm-${sec.key}-${i}`);
           if (el) { el.value = item.remarks; updateRemarks(sec.key, i, item.remarks); }
         }
+        if (item.photos && item.photos.length) {
+          ensureCell(`${sec.key}-${i}`).photos = item.photos.slice();
+          renderPhotoThumbs(sec.key, i);
+        }
       });
     });
     document.getElementById('export-row').style.display    = 'flex';
@@ -1735,8 +2169,10 @@ function loadAudit(id) {
 
 function deleteAudit(id) {
   const pd  = PLANT_DATA[activePlant];
-  const all = getAllAudits().filter(a => a.id !== id);
-  localStorage.setItem(pd.storageKey, JSON.stringify(all));
+  const all = getAllAudits();
+  const remaining = all.filter(a => a.id !== id);
+  localStorage.setItem(pd.storageKey, JSON.stringify(remaining));
+  deletePhotosByAuditId(id);
   renderHistory();
   toast('Audit deleted');
 }
@@ -1745,6 +2181,7 @@ function deleteAudit(id) {
 // CLEAR FORM
 // ══════════════════════════════════════════════════════════
 function clearForm() {
+  discardUnsavedDraftPhotos();
   scores  = {};
   savedId = null;
   renderSections();

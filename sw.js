@@ -1,4 +1,4 @@
-const CACHE = 'tag-5s-v2';
+const CACHE = 'tag-5s-v4';
 const ASSETS = [
   './index.html',
   './icon.svg',
@@ -20,11 +20,39 @@ self.addEventListener('activate', e => {
   );
 });
 
+// App HTML: network-first so updates always reach devices when online,
+// falling back to cache when offline. Static assets: cache-first for speed
+// and offline resilience on the shop floor.
 self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+
+  const url = new URL(req.url);
+  const isAppShell =
+    req.mode === 'navigate' ||
+    req.destination === 'document' ||
+    url.pathname === '/' ||
+    url.pathname.endsWith('/index.html');
+
+  if (isAppShell) {
+    e.respondWith(
+      fetch(req)
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put('./index.html', clone));
+          return res;
+        })
+        .catch(() =>
+          caches.match('./index.html').then(cached => cached || caches.match(req))
+        )
+    );
+    return;
+  }
+
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+    caches.match(req).then(cached => cached || fetch(req).then(res => {
       const clone = res.clone();
-      caches.open(CACHE).then(c => c.put(e.request, clone));
+      caches.open(CACHE).then(c => c.put(req, clone));
       return res;
     }))
   );
