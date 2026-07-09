@@ -617,6 +617,7 @@ body {
   touch-action: manipulation;
 }
 .btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .55; cursor: default; }
 .btn-amber   { background: var(--amber); color: var(--navy); }
 .btn-amber:hover { background: var(--amber2); }
 .btn-navy    { background: var(--navy); color: #fff; }
@@ -643,11 +644,32 @@ body {
 .hist-card-top {
   padding: 13px 14px 10px;
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
 }
-.hist-dept { font-size: 1rem; font-weight: 800; color: var(--navy); }
+.hist-check {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.hist-check input[type="checkbox"] {
+  width: 21px;
+  height: 21px;
+  cursor: pointer;
+  accent-color: var(--amber2);
+}
+.hist-dept { flex: 1; min-width: 0; font-size: 1rem; font-weight: 800; color: var(--navy); }
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--amber2);
+  text-decoration: underline;
+  -webkit-tap-highlight-color: transparent;
+}
 .hist-score-pill {
   flex-shrink: 0;
   background: var(--amber3);
@@ -665,11 +687,13 @@ body {
 }
 .hist-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 10px 14px 13px;
   border-top: 1px solid var(--border);
   background: #f8fafc;
 }
+.hist-actions .btn-sm { flex: 1 1 auto; }
 .btn-sm {
   padding: 8px 14px;
   border-radius: 7px;
@@ -802,6 +826,9 @@ body {
 <!-- ══════════════ DASHBOARD VIEW ══════════════ -->
 <div id="view-dashboard" class="view active">
   <div class="dash-wrap">
+    <button class="btn btn-outline" style="width:100%;margin-bottom:10px" onclick="checkForUpdate()" id="update-btn">
+      🔄 Check for Update
+    </button>
     <div class="card" id="dash-card">
       <div class="card-head" id="dash-card-head">Department Scores</div>
       <div id="dash-body"></div>
@@ -883,7 +910,8 @@ body {
       <button class="btn btn-navy"    onclick="saveAudit()">Save Audit</button>
     </div>
     <div class="btn-row" id="export-row" style="display:none">
-      <button class="btn btn-amber" onclick="exportCurrent()">Export to Excel</button>
+      <button class="btn btn-amber"   onclick="exportCurrent()">Export to Excel</button>
+      <button class="btn btn-outline" onclick="shareCurrent()">📤 Share</button>
     </div>
     <div class="btn-row" id="new-audit-row" style="display:none">
       <button class="btn btn-outline" onclick="switchTab('history')">View History</button>
@@ -900,6 +928,17 @@ body {
       Export Full Workbook (All Departments)
     </button>
     <div id="workbook-status" style="font-size:.78rem;color:var(--muted);text-align:center;margin-bottom:10px;display:none"></div>
+    <div id="select-toolbar" style="display:none;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span id="bulk-count-lbl" style="font-size:.78rem;font-weight:700;color:var(--muted)"></span>
+      <span style="display:flex;gap:16px">
+        <button type="button" class="link-btn" onclick="selectAllVisible()">Select All</button>
+        <button type="button" class="link-btn" onclick="clearSelection()">Clear</button>
+      </span>
+    </div>
+    <div class="btn-row" id="bulk-bar" style="display:none;margin-bottom:10px">
+      <button class="btn btn-amber"   onclick="exportSelected()">Export Selected</button>
+      <button class="btn btn-outline" onclick="shareSelected()">📤 Share Selected</button>
+    </div>
   </div>
   <div class="hist-wrap" id="hist-wrap"></div>
 </div>
@@ -1312,6 +1351,7 @@ let activeDept  = '';
 let savedId     = null;
 let pendingPhotoTarget  = null;
 const photoThumbUrls    = {}; // "sec-idx" -> [blob urls currently shown], for revocation
+let selectedAuditIds    = new Set(); // History tab bulk-select, scoped to the active plant
 
 // ══════════════════════════════════════════════════════════
 // INIT
@@ -1338,6 +1378,7 @@ function switchPlant(p) {
   scores = {};
   activeDept = '';
   savedId = null;
+  selectedAuditIds.clear();
 
   applyPlantUI();
 
@@ -2021,22 +2062,32 @@ async function exportCurrent() {
   });
 }
 
-async function doExport(a) {
+async function buildExportBlob(a) {
   const suffix = PLANT_DATA[a.plant || activePlant].exportSuffix;
   const wb     = new ExcelJS.Workbook();
   buildAuditSheet(wb.addWorksheet('5S Audit'), a);
   await buildPhotoAppendix(wb, 'Photos', a);
   const buffer = await wb.xlsx.writeBuffer();
   const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url    = URL.createObjectURL(blob);
-  const link   = document.createElement('a');
   const d      = a.date ? new Date(a.date + 'T00:00:00') : new Date();
   const month  = d.toLocaleString('en-US', { month: 'long' });
   const safe   = a.dept.replace(/[\/\\?%*:|"<>]/g, '-');
+  const filename = `${d.getFullYear()}-${month}-${safe}-${suffix}.xlsx`;
+  return { blob, filename };
+}
+
+function downloadBlob(blob, filename) {
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('a');
   link.href     = url;
-  link.download = `${d.getFullYear()}-${month}-${safe}-${suffix}.xlsx`;
+  link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+async function doExport(a) {
+  const { blob, filename } = await buildExportBlob(a);
+  downloadBlob(blob, filename);
   toast('Excel file downloaded!', 'ok');
 }
 
@@ -2045,41 +2096,169 @@ async function exportById(id) {
   if (a) await doExport(a);
 }
 
-async function exportFullWorkbook() {
-  const all = getAllAudits();
-  if (!all.length) { toast('No saved audits yet', 'err'); return; }
+// ══════════════════════════════════════════════════════════
+// SHARE (native share sheet — email, text, AirDrop, etc.)
+// ══════════════════════════════════════════════════════════
+async function shareExportBlob(a) {
+  toast('Preparing file…');
+  try {
+    const { blob, filename } = await buildExportBlob(a);
+    const file = new File([blob], filename, { type: blob.type });
 
-  const suffix = PLANT_DATA[activePlant].exportSuffix;
-  const status = document.getElementById('workbook-status');
-  status.style.display = 'block';
-  status.textContent   = 'Building workbook…';
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: '5S Audit — ' + a.dept });
+    } else {
+      downloadBlob(blob, filename);
+      toast('Sharing not supported here — downloaded instead. Attach it from your Downloads.', 'err');
+    }
+  } catch (err) {
+    if (err && err.name === 'AbortError') return; // user cancelled the share sheet
+    toast('Could not share file', 'err');
+  }
+}
 
+async function shareAudit(id) {
+  const a = getAllAudits().find(x => x.id === id);
+  if (a) await shareExportBlob(a);
+}
+
+async function shareCurrent() {
+  const dept = document.getElementById('f-dept').value;
+  if (!dept) { toast('Select a department first', 'err'); return; }
+
+  const pd       = PLANT_DATA[activePlant];
+  const sections = pd.getSections(dept);
+  let grand = 0, maxTotal = 0;
+  const secData = sections.map(sec => {
+    const items = sec.items.map((label, i) => {
+      const s = scores[`${sec.key}-${i}`] || { score: null, remarks: '', photos: [] };
+      if (s.score !== null) grand += s.score;
+      maxTotal += 5;
+      return { label, score: s.score, remarks: s.remarks, photos: s.photos || [] };
+    });
+    return { key: sec.key, label: sec.label, items };
+  });
+
+  await shareExportBlob({
+    plant:   activePlant,
+    dept,
+    auditor: document.getElementById('f-auditor').value.trim() || 'Chase S.',
+    date:    document.getElementById('f-date').value,
+    time:    document.getElementById('f-time').value,
+    sections: secData,
+    total: grand,
+    max:   maxTotal,
+  });
+}
+
+// Shared by "Export Full Workbook" and "Export/Share Selected" so the two
+// paths can never drift apart on sheet naming or photo-appendix handling.
+async function buildMultiSheetWorkbook(audits) {
   const wb = new ExcelJS.Workbook();
   const sheetNameCount = {};
-  for (const a of all) {
+  for (const a of audits) {
     let base = a.dept.replace(/[\/\\*\[\]:?]/g, '-').slice(0, 28);
     sheetNameCount[base] = (sheetNameCount[base] || 0) + 1;
     const sheetName = sheetNameCount[base] > 1 ? `${base} (${sheetNameCount[base]})` : base;
     buildAuditSheet(wb.addWorksheet(sheetName), a);
     await buildPhotoAppendix(wb, (sheetName + ' Photos').slice(0, 31), a);
   }
+  return wb;
+}
 
-  const dates  = all.map(a => a.date).filter(Boolean).sort();
+function multiAuditFilename(audits, label) {
+  const suffix = PLANT_DATA[activePlant].exportSuffix;
+  const dates  = audits.map(a => a.date).filter(Boolean).sort();
   const latest = dates.length ? new Date(dates[dates.length - 1] + 'T00:00:00') : new Date();
   const month  = latest.toLocaleString('en-US', { month: 'long' });
   const year   = latest.getFullYear();
+  return `${year}-${month}-${label}${suffix}.xlsx`;
+}
 
-  const buffer = await wb.xlsx.writeBuffer();
-  const blob   = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url    = URL.createObjectURL(blob);
-  const link   = document.createElement('a');
-  link.href     = url;
-  link.download = `${year}-${month}-Audits${suffix}.xlsx`;
-  link.click();
-  URL.revokeObjectURL(url);
+async function exportFullWorkbook() {
+  const all = getAllAudits();
+  if (!all.length) { toast('No saved audits yet', 'err'); return; }
 
-  status.textContent = `✓ Exported ${all.length} audit${all.length > 1 ? 's' : ''} → ${year}-${month}-Audits${suffix}.xlsx`;
+  const status = document.getElementById('workbook-status');
+  status.style.display = 'block';
+  status.textContent   = 'Building workbook…';
+
+  const wb       = await buildMultiSheetWorkbook(all);
+  const filename = multiAuditFilename(all, 'Audits');
+  const buffer   = await wb.xlsx.writeBuffer();
+  const blob     = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  downloadBlob(blob, filename);
+
+  status.textContent = `✓ Exported ${all.length} audit${all.length > 1 ? 's' : ''} → ${filename}`;
   toast('Full workbook downloaded!', 'ok');
+}
+
+// ══════════════════════════════════════════════════════════
+// BULK SELECT (export / share several audits at once)
+// ══════════════════════════════════════════════════════════
+function toggleAuditSelect(id, checked) {
+  if (checked) selectedAuditIds.add(id); else selectedAuditIds.delete(id);
+  updateBulkBar();
+}
+
+function selectAllVisible() {
+  getAllAudits().forEach(a => selectedAuditIds.add(a.id));
+  renderHistory();
+}
+
+function clearSelection() {
+  selectedAuditIds.clear();
+  renderHistory();
+}
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulk-bar');
+  const lbl = document.getElementById('bulk-count-lbl');
+  if (!bar || !lbl) return;
+  const n = selectedAuditIds.size;
+  lbl.textContent   = n > 0 ? `${n} selected` : '';
+  bar.style.display = n > 0 ? 'flex' : 'none';
+}
+
+function getSelectedAudits() {
+  const all = getAllAudits();
+  return all.filter(a => selectedAuditIds.has(a.id));
+}
+
+async function exportSelected() {
+  const selected = getSelectedAudits();
+  if (!selected.length) { toast('No audits selected', 'err'); return; }
+
+  const wb       = await buildMultiSheetWorkbook(selected);
+  const filename = multiAuditFilename(selected, 'SelectedAudits');
+  const buffer   = await wb.xlsx.writeBuffer();
+  const blob     = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  downloadBlob(blob, filename);
+  toast(`Exported ${selected.length} audit${selected.length > 1 ? 's' : ''}!`, 'ok');
+}
+
+async function shareSelected() {
+  const selected = getSelectedAudits();
+  if (!selected.length) { toast('No audits selected', 'err'); return; }
+
+  toast('Preparing file…');
+  try {
+    const wb       = await buildMultiSheetWorkbook(selected);
+    const filename = multiAuditFilename(selected, 'SelectedAudits');
+    const buffer   = await wb.xlsx.writeBuffer();
+    const blob     = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const file     = new File([blob], filename, { type: blob.type });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: `${selected.length} 5S Audits` });
+    } else {
+      downloadBlob(blob, filename);
+      toast('Sharing not supported here — downloaded instead. Attach it from your Downloads.', 'err');
+    }
+  } catch (err) {
+    if (err && err.name === 'AbortError') return;
+    toast('Could not share file', 'err');
+  }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -2092,27 +2271,43 @@ function renderHistory() {
   status.style.display = 'none';
   status.textContent   = '';
 
+  // Drop any selected id that no longer exists in this plant's audits
+  const validIds = new Set(all.map(a => a.id));
+  selectedAuditIds.forEach(id => { if (!validIds.has(id)) selectedAuditIds.delete(id); });
+
+  const toolbar = document.getElementById('select-toolbar');
+
   if (!all.length) {
     wrap.innerHTML = `
       <div class="hist-empty">
         <div class="icon">📋</div>
         <p>No audits saved yet.<br>Complete an audit and tap <strong>Save Audit</strong>.</p>
       </div>`;
+    if (toolbar) toolbar.style.display = 'none';
+    updateBulkBar();
     return;
   }
+
+  if (toolbar) toolbar.style.display = 'flex';
+  updateBulkBar();
 
   wrap.innerHTML = all.map(a => {
     const pct   = a.max ? Math.round((a.total / a.max) * 100) : 0;
     const parts = [fmtDate(a.date), fmtTime(a.time), a.auditor].filter(Boolean);
+    const checked = selectedAuditIds.has(a.id) ? 'checked' : '';
     return `
       <div class="hist-card">
         <div class="hist-card-top">
+          <label class="hist-check">
+            <input type="checkbox" ${checked} onchange="toggleAuditSelect('${a.id}', this.checked)" aria-label="Select ${a.dept} audit">
+          </label>
           <div class="hist-dept">${a.dept}</div>
           <div class="hist-score-pill">${a.total}/${a.max} &bull; ${pct}%</div>
         </div>
         <div class="hist-meta">${parts.join(' &bull; ')}</div>
         <div class="hist-actions">
           <button class="btn-sm btn-sm-amber"   onclick="exportById('${a.id}')">Export Excel</button>
+          <button class="btn-sm btn-sm-outline"  onclick="shareAudit('${a.id}')">📤 Share</button>
           <button class="btn-sm btn-sm-outline"  onclick="loadAudit('${a.id}')">View / Edit</button>
           <button class="btn-sm btn-sm-red"      onclick="confirmDelete('${a.id}')">Delete</button>
         </div>
@@ -2237,6 +2432,50 @@ function updateOffline() {
 window.addEventListener('online',  () => { updateOffline(); toast('Back online', 'ok'); });
 window.addEventListener('offline', () => { updateOffline(); toast('No internet — offline mode', 'err'); });
 updateOffline();
+
+// ══════════════════════════════════════════════════════════
+// APP UPDATE CHECK
+// ══════════════════════════════════════════════════════════
+let swReloadTriggered = false;
+if ('serviceWorker' in navigator) {
+  // Fires once a newly-installed service worker takes control (sw.js calls
+  // skipWaiting + clients.claim, so this happens automatically after install).
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swReloadTriggered) return;
+    swReloadTriggered = true;
+    toast('Update installed! Reloading…', 'ok');
+    setTimeout(() => window.location.reload(), 600);
+  });
+}
+
+async function checkForUpdate() {
+  const btn = document.getElementById('update-btn');
+  if (!('serviceWorker' in navigator)) { toast('Updates not supported on this browser', 'err'); return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = '🔄 Checking…'; }
+  toast('Checking for update…');
+
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) { toast('App is not registered yet — try reloading first', 'err'); return; }
+
+    let found = false;
+    const onFound = () => { found = true; };
+    reg.addEventListener('updatefound', onFound);
+
+    await reg.update();
+    await new Promise(r => setTimeout(r, 1200));
+    reg.removeEventListener('updatefound', onFound);
+
+    // If an update was found, the controllerchange listener above reloads
+    // automatically once it finishes installing — nothing else to do here.
+    if (!found) toast("You're already on the latest version", 'ok');
+  } catch (err) {
+    toast('Could not check for update', 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Check for Update'; }
+  }
+}
 </script>
 
 <script>
