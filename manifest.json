@@ -1,18 +1,31 @@
 {
-  "name": "TAG Time Study",
-  "short_name": "TAG TS",
-  "description": "Factory floor cycle time study tool for TAG Manufacturing",
-  "start_url": "./",
+  "name": "TAG 5S Audit",
+  "short_name": "5S Audit",
+  "description": "TAG Manufacturing — Combined 5S Audit System (Plant 1 & Plant 2)",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0a1f44",
-  "theme_color": "#0a1f44",
-  "orientation": "any",
+  "background_color": "#0f1f3d",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "./icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "./icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ]
 }
