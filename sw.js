@@ -1,59 +1,83 @@
-const CACHE = 'tag-5s-v4';
-const ASSETS = [
-  './index.html',
-  './icon.svg',
-  './manifest.json',
-  'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js'
-];
+const CACHE_NAME = 'tag-time-study-v61';
+
+const CORE_ASSETS = ['./', './index.html', './logo.png'];
+const CDN_SHEETJS = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(async cache => {
+      await cache.addAll(CORE_ASSETS);
+      try { await cache.add(CDN_SHEETJS); } catch (_) { /* cached on first online load */ }
+    })
   );
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
 
-// App HTML: network-first so updates always reach devices when online,
-// falling back to cache when offline. Static assets: cache-first for speed
-// and offline resilience on the shop floor.
 self.addEventListener('fetch', e => {
-  const req = e.request;
-  if (req.method !== 'GET') return;
+  if (e.request.method !== 'GET') return;
 
-  const url = new URL(req.url);
-  const isAppShell =
-    req.mode === 'navigate' ||
-    req.destination === 'document' ||
-    url.pathname === '/' ||
-    url.pathname.endsWith('/index.html');
+  const url = new URL(e.request.url);
+  const isHTML = url.pathname.endsWith('.html') || url.pathname === '/' || url.pathname.endsWith('/');
+  const isCDN  = url.origin !== self.location.origin;
 
-  if (isAppShell) {
+  if (isHTML) {
+    // Network-first for HTML: always try to fetch fresh, fall back to cache.
+    // cache:'no-store' forces this past the browser's own HTTP cache — without it,
+    // "network-first" can still silently hand back a stale cached response instead
+    // of actually reaching the server, which is exactly why updates can appear to
+    // not exist even right after a fresh push.
     e.respondWith(
-      fetch(req)
-        .then(res => {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put('./index.html', clone));
-          return res;
-        })
-        .catch(() =>
-          caches.match('./index.html').then(cached => cached || caches.match(req))
-        )
+      fetch(e.request, { cache: 'no-store' }).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(e.request))
     );
     return;
   }
 
+  if (isCDN) {
+    // Cache-first for CDN assets (SheetJS) — versioned and stable
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        return fetch(e.request).then(response => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+          }
+          return response;
+        });
+      }).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+
+  // Cache-first for everything else (sw.js, manifest, icon)
   e.respondWith(
-    caches.match(req).then(cached => cached || fetch(req).then(res => {
-      const clone = res.clone();
-      caches.open(CACHE).then(c => c.put(req, clone));
-      return res;
-    }))
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        }
+        return response;
+      });
+    }).catch(() => caches.match('./index.html'))
   );
+});
+
+// Page posts SKIP_WAITING when user taps "Check for Update" and a new SW is waiting.
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
