@@ -733,6 +733,20 @@ body {
 .dialog h3 { font-size: 1rem; font-weight: 800; color: var(--navy); margin-bottom: 8px; }
 .dialog p  { font-size: .875rem; color: var(--muted); line-height: 1.5; margin-bottom: 20px; }
 .dialog-btns { display: flex; gap: 10px; }
+.dlg-input {
+  width: 100%;
+  padding: 12px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-align: center;
+  text-transform: uppercase;
+  background: var(--surface);
+  color: var(--text);
+}
+.dlg-input:focus { outline: none; border-color: var(--red); background: #fff; }
 
 /* ── TOAST ──────────────────────────────────────── */
 .toast {
@@ -936,6 +950,7 @@ body {
     </div>
     <div class="btn-row" id="bulk-bar" style="display:none;margin-bottom:10px">
       <button class="btn btn-amber" onclick="exportSelected()">Export Selected</button>
+      <button class="btn btn-red"   onclick="openBulkDeleteDlg()">🗑️ Delete Selected</button>
     </div>
   </div>
   <div class="hist-wrap" id="hist-wrap"></div>
@@ -949,6 +964,21 @@ body {
     <div class="dialog-btns">
       <button class="btn btn-outline" style="flex:1;padding:13px" onclick="closeDlg()">Cancel</button>
       <button class="btn btn-red"     style="flex:1;padding:13px" id="dlg-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ BULK DELETE CONFIRM (type-to-confirm) ══════════════ -->
+<div class="overlay hidden" id="bulk-delete-overlay">
+  <div class="dialog">
+    <h3>Delete Selected Audits</h3>
+    <p>This will permanently delete <strong id="bulk-delete-count">0</strong> audit(s) and any attached photos. This cannot be undone.</p>
+    <p>Type <strong>DELETE</strong> below to confirm:</p>
+    <input type="text" id="bulk-delete-input" class="dlg-input" placeholder="Type DELETE"
+      autocapitalize="characters" autocomplete="off" oninput="onBulkDeleteInput(this.value)">
+    <div class="dialog-btns" style="margin-top:16px">
+      <button class="btn btn-outline" style="flex:1;padding:13px" onclick="closeBulkDeleteDlg()">Cancel</button>
+      <button class="btn btn-red"     style="flex:1;padding:13px" id="bulk-delete-confirm-btn" disabled onclick="confirmBulkDelete()">Delete</button>
     </div>
   </div>
 </div>
@@ -2178,6 +2208,40 @@ async function exportSelected() {
   const blob     = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   downloadBlob(blob, filename);
   toast(`Exported ${selected.length} audit${selected.length > 1 ? 's' : ''}!`, 'ok');
+}
+
+function openBulkDeleteDlg() {
+  const selected = getSelectedAudits();
+  if (!selected.length) { toast('No audits selected', 'err'); return; }
+
+  document.getElementById('bulk-delete-count').textContent = selected.length;
+  document.getElementById('bulk-delete-input').value = '';
+  document.getElementById('bulk-delete-confirm-btn').disabled = true;
+  document.getElementById('bulk-delete-overlay').classList.remove('hidden');
+}
+
+function closeBulkDeleteDlg() {
+  document.getElementById('bulk-delete-overlay').classList.add('hidden');
+}
+
+function onBulkDeleteInput(val) {
+  document.getElementById('bulk-delete-confirm-btn').disabled = val.trim().toUpperCase() !== 'DELETE';
+}
+
+function confirmBulkDelete() {
+  const selected = getSelectedAudits();
+  if (!selected.length) { closeBulkDeleteDlg(); return; }
+
+  const pd  = PLANT_DATA[activePlant];
+  const idsToDelete = new Set(selected.map(a => a.id));
+  const remaining   = getAllAudits().filter(a => !idsToDelete.has(a.id));
+  localStorage.setItem(pd.storageKey, JSON.stringify(remaining));
+  selected.forEach(a => deletePhotosByAuditId(a.id));
+
+  selectedAuditIds.clear();
+  closeBulkDeleteDlg();
+  renderHistory();
+  toast(`Deleted ${selected.length} audit${selected.length > 1 ? 's' : ''}`, 'ok');
 }
 
 // ══════════════════════════════════════════════════════════
