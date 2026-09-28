@@ -190,7 +190,204 @@ body {
 }
 
 /* ── DASHBOARD ──────────────────────────────────── */
-.dash-wrap { padding: 14px; max-width: 600px; margin: 0 auto; }
+.dash-wrap { padding: 14px; max-width: 960px; margin: 0 auto; }
+.dash-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.dash-month-title { flex: 1; min-width: 0; text-align: center; }
+.dash-month-title h2 { font-size: 1.1rem; font-weight: 900; color: var(--navy); }
+.dash-month-title p {
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.dash-month-btn {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--navy);
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.dash-month-btn:disabled { opacity: .3; cursor: default; }
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.kpi {
+  position: relative;
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: 4px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 10px 12px 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+}
+.kpi-lbl {
+  font-size: .6rem;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding-right: 16px;
+}
+.kpi-dot {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+.kpi.st-green  { border-top-color: #16a34a; }
+.kpi.st-yellow { border-top-color: #eab308; }
+.kpi.st-red    { border-top-color: #dc2626; }
+.kpi.st-green  .kpi-dot { background: #16a34a; }
+.kpi.st-yellow .kpi-dot { background: #eab308; }
+.kpi.st-red    .kpi-dot { background: #dc2626; }
+.kpi-val {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: var(--navy);
+  line-height: 1.1;
+  margin-top: 5px;
+  white-space: nowrap;
+}
+.kpi-val small { font-size: .95rem; font-weight: 800; color: var(--muted); }
+.kpi-sub {
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 3px;
+  line-height: 1.35;
+}
+.kpi-sub .up   { color: #16a34a; font-weight: 800; }
+.kpi-sub .down { color: #dc2626; font-weight: 800; }
+.status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: .64rem;
+  font-weight: 700;
+  color: var(--muted);
+  margin: 0 2px 14px;
+}
+.status-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.status-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.dash-grid .card { margin-bottom: 0; }
+@media (min-width: 760px) {
+  .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.card-sub {
+  font-size: .66rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.chart-body { padding: 10px 12px 12px; }
+.chart-host svg { display: block; }
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 8px;
+  font-size: .68rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.lg { display: inline-flex; align-items: center; gap: 5px; }
+.lg-sw { width: 12px; height: 10px; border-radius: 2px; display: inline-block; }
+.lg-line { width: 16px; height: 0; border-top: 2px solid; display: inline-block; }
+.lg-dash { border-top-style: dashed; }
+.chart-empty {
+  padding: 30px 10px;
+  text-align: center;
+  font-size: .82rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.opp-row { padding: 9px 0; border-bottom: 1px solid var(--border); }
+.opp-row:first-child { padding-top: 2px; }
+.opp-row:last-of-type { border-bottom: none; }
+.opp-label {
+  font-size: .77rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  margin-bottom: 6px;
+}
+.opp-bar-line { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.opp-track { flex: 1; height: 10px; }
+.opp-bar { height: 10px; border-radius: 5px; min-width: 3px; }
+.opp-bar.cur  { background: #1f5f7a; }
+.opp-bar.prev { background: #c0504d; }
+.opp-bar.zero { background: var(--border); }
+.opp-num {
+  width: 22px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: .72rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.opp-depts { font-size: .68rem; color: var(--muted); margin-top: 4px; line-height: 1.35; }
+.dash-remaining-lbl {
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 12px;
+}
+.dash-remaining-text { font-size: .78rem; color: var(--text); margin-top: 5px; line-height: 1.5; }
+.dash-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.dash-chip {
+  padding: 7px 11px;
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.dash-chip:active { transform: scale(.96); border-color: var(--amber); }
+.dash-dept-date { font-size: .7rem; font-weight: 600; color: var(--muted); margin-top: 2px; }
+.dash-empty-sm { padding: 22px 14px; text-align: center; font-size: .82rem; color: var(--muted); }
+.dash-footer { margin-top: 18px; }
+.app-version { text-align: center; font-size: .66rem; font-weight: 600; color: var(--muted); margin-top: 8px; }
+@media (max-width: 380px) {
+  .kpi { padding: 9px 9px 10px; }
+  .kpi-val { font-size: 1.5rem; }
+}
 .dash-dept-row {
   display: flex;
   align-items: center;
@@ -241,10 +438,7 @@ body {
   color: #9ca3af;
   font-style: italic;
 }
-.dash-progress-wrap {
-  padding: 13px 14px;
-  border-bottom: 1px solid var(--border);
-}
+.dash-progress-wrap { padding: 13px 14px 14px; }
 .dash-progress-top {
   display: flex;
   justify-content: space-between;
@@ -626,6 +820,34 @@ body {
 
 /* ── HISTORY ────────────────────────────────────── */
 .hist-wrap { padding: 14px; max-width: 600px; margin: 0 auto; }
+.hist-filter { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.hist-filter label {
+  flex-shrink: 0;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.hist-filter select {
+  flex: 1;
+  min-width: 0;
+  padding: 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: .9rem;
+  font-weight: 700;
+  background: var(--card);
+  color: var(--text);
+}
+.hist-month-hd {
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 4px 2px 8px;
+}
 .hist-empty {
   text-align: center;
   padding: 56px 24px;
@@ -764,7 +986,10 @@ body {
   pointer-events: none;
   transition: opacity .22s, transform .22s;
   z-index: 300;
-  white-space: nowrap;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  line-height: 1.35;
   box-shadow: 0 4px 14px rgba(0,0,0,.3);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -840,12 +1065,12 @@ body {
 <!-- ══════════════ DASHBOARD VIEW ══════════════ -->
 <div id="view-dashboard" class="view active">
   <div class="dash-wrap">
-    <button class="btn btn-outline" style="width:100%;margin-bottom:10px" onclick="checkForUpdate()" id="update-btn">
-      🔄 Check for Update
-    </button>
-    <div class="card" id="dash-card">
-      <div class="card-head" id="dash-card-head">Department Scores</div>
-      <div id="dash-body"></div>
+    <div id="dash-body"></div>
+    <div class="dash-footer">
+      <button class="btn btn-outline" style="width:100%" onclick="checkForUpdate()" id="update-btn">
+        🔄 Check for Update
+      </button>
+      <div class="app-version" id="app-version"></div>
     </div>
   </div>
 </div>
@@ -937,7 +1162,11 @@ body {
 <!-- ══════════════ HISTORY VIEW ══════════════ -->
 <div id="view-history" class="view">
   <div style="padding:14px 14px 0;max-width:600px;margin:0 auto">
-    <button class="btn btn-amber" style="width:100%;margin-bottom:10px" onclick="exportFullWorkbook()">
+    <div class="hist-filter" id="hist-filter" style="display:none">
+      <label for="hist-month">Showing</label>
+      <select id="hist-month" onchange="setHistMonth(this.value)"></select>
+    </div>
+    <button class="btn btn-amber" style="width:100%;margin-bottom:10px" onclick="exportFullWorkbook()" id="export-full-btn">
       Export Full Workbook (All Departments)
     </button>
     <div id="workbook-status" style="font-size:.78rem;color:var(--muted);text-align:center;margin-bottom:10px;display:none"></div>
@@ -1380,18 +1609,72 @@ let savedId     = null;
 let pendingPhotoTarget  = null;
 const photoThumbUrls    = {}; // "sec-idx" -> [blob urls currently shown], for revocation
 let selectedAuditIds    = new Set(); // History tab bulk-select, scoped to the active plant
+let dashMonth           = null;      // 'YYYY-MM' the dashboard is showing; null = follow the current month
+let histMonth           = null;      // 'YYYY-MM' | 'all' | null (= most recent month with audits)
+
+// Bump on every deploy — "Check for Update" compares this against the live copy.
+const APP_VERSION     = '2026.09.28';
+const SCORE_GOAL      = 3.0;  // plant-wide monthly target (matches the 5S scorecard goal line)
+const OPP_THRESHOLD   = 3;    // an item scored below this counts as a 5S opportunity
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 // ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
 (function init() {
-  const now = new Date();
-  document.getElementById('f-date').value = now.toISOString().slice(0, 10);
-  document.getElementById('f-time').value = now.toTimeString().slice(0, 5);
+  setFormDateTimeToNow();
   applyPlantUI();
   renderDashboard();
   gcOrphanPhotos();
 })();
+
+// ══════════════════════════════════════════════════════════
+// DATE / MONTH HELPERS
+// ══════════════════════════════════════════════════════════
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+// Local calendar date — toISOString() is UTC and rolls to tomorrow in the evening.
+function localDateStr(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+
+function setFormDateTimeToNow() {
+  const now = new Date();
+  document.getElementById('f-date').value = localDateStr(now);
+  document.getElementById('f-time').value = now.toTimeString().slice(0, 5);
+}
+
+function currentMonthKey() { return localDateStr(new Date()).slice(0, 7); }
+
+function auditMonth(a) { return (a.date || (a.savedAt || '').slice(0, 10)).slice(0, 7); }
+
+function shiftMonth(key, delta) {
+  let [y, m] = key.split('-').map(Number);
+  m += delta;
+  while (m < 1)  { m += 12; y--; }
+  while (m > 12) { m -= 12; y++; }
+  return `${y}-${pad2(m)}`;
+}
+
+function monthName(key, short) {
+  if (!key || key.length !== 7) return 'No date';
+  const [y, m] = key.split('-').map(Number);
+  return (short ? MONTH_ABBR : MONTH_FULL)[m - 1] + ' ' + y;
+}
+
+function monthAbbr(key) { return MONTH_ABBR[Number(key.slice(5, 7)) - 1] || ''; }
+
+function fmtShortDate(d) {
+  if (!d || d.length < 10) return '';
+  return MONTH_ABBR[Number(d.slice(5, 7)) - 1] + ' ' + Number(d.slice(8, 10));
+}
+
+function auditSortKey(a) { return (a.date || '') + '|' + (a.savedAt || ''); }
+function newestFirst(a, b) { const ka = auditSortKey(a), kb = auditSortKey(b); return ka < kb ? 1 : ka > kb ? -1 : 0; }
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
 // ══════════════════════════════════════════════════════════
 // PLANT SWITCHING
@@ -1407,6 +1690,8 @@ function switchPlant(p) {
   activeDept = '';
   savedId = null;
   selectedAuditIds.clear();
+  dashMonth = null;
+  histMonth = null;
 
   applyPlantUI();
 
@@ -1468,106 +1753,383 @@ function switchTab(name) {
 // ══════════════════════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════════════════════
+function auditAvg(a) {
+  const n = a.sections.reduce((s, sec) => s + sec.items.length, 0);
+  return n > 0 ? a.total / n : 0;
+}
+
+function roundScore(v) { return v === null ? null : Math.round(v * 10) / 10; }
+
+// { 'YYYY-MM': { dept: latest audit for that dept in that month } }
+function latestByMonth(audits) {
+  const out = {};
+  audits.forEach(a => {
+    const m = auditMonth(a);
+    if (m.length !== 7) return;
+    const bucket = out[m] || (out[m] = {});
+    const cur = bucket[a.dept];
+    if (!cur || auditSortKey(a) > auditSortKey(cur)) bucket[a.dept] = a;
+  });
+  return out;
+}
+
+// Plant score for a month = average of each audited department's score
+function monthScore(bucket) {
+  const list = Object.values(bucket || {});
+  if (!list.length) return null;
+  return list.reduce((s, a) => s + auditAvg(a), 0) / list.length;
+}
+
+// { itemLabel: { count, depts[] } } — items scored below OPP_THRESHOLD
+function monthOpportunities(bucket) {
+  const map = {};
+  Object.values(bucket || {}).forEach(a => a.sections.forEach(sec => sec.items.forEach(it => {
+    if (it.score === null || it.score === undefined || it.score >= OPP_THRESHOLD) return;
+    const e = map[it.label] || (map[it.label] = { count: 0, depts: [] });
+    e.count++;
+    if (e.depts.indexOf(a.dept) < 0) e.depts.push(a.dept);
+  })));
+  return map;
+}
+
+function sumOpps(map) { return Object.values(map).reduce((s, e) => s + e.count, 0); }
+
+// Same convention as the plant 5S scorecard legend
+function scoreStatus(score, prev) {
+  if (score === null) return '';
+  if (score >= SCORE_GOAL) return 'st-green';
+  if (prev !== null && score > prev) return 'st-yellow';
+  return 'st-red';
+}
+
+function deptPillClass(avg) {
+  if (avg >= 4.0) return 'dash-pill-green';
+  if (avg >= 3.0) return 'dash-pill-amber';
+  return 'dash-pill-red';
+}
+
+function setDashMonth(key) {
+  dashMonth = key === currentMonthKey() ? null : key;
+  renderDashboard();
+}
+
 function renderDashboard() {
-  const pd   = PLANT_DATA[activePlant];
-  const all  = getAllAudits();
-  const body = document.getElementById('dash-body');
-  document.getElementById('dash-card-head').textContent = pd.label + ' — Department Scores';
-
-  // Collect all dept names across groups
+  const pd       = PLANT_DATA[activePlant];
+  const body     = document.getElementById('dash-body');
   const allDepts = pd.deptGroups.reduce((acc, g) => acc.concat(g.depts), []);
+  const deptSet  = new Set(allDepts);
+  const audits   = getAllAudits().filter(a => deptSet.has(a.dept));
+  const byMonth  = latestByMonth(audits);
 
-  // Group audits by dept, sorted newest first
-  const byDept = {};
-  all.forEach(a => {
-    if (!byDept[a.dept]) byDept[a.dept] = [];
-    byDept[a.dept].push(a);
-  });
-  // Sort each dept's audits newest first
-  Object.keys(byDept).forEach(d => {
-    byDept[d].sort((a, b) => (b.savedAt || b.date || '') > (a.savedAt || a.date || '') ? 1 : -1);
-  });
+  const nowKey = currentMonthKey();
+  const keys   = Object.keys(byMonth).sort();
+  const minKey = keys.length && keys[0] < nowKey ? keys[0] : nowKey;
+  const maxKey = keys.length && keys[keys.length - 1] > nowKey ? keys[keys.length - 1] : nowKey;
+  let month = dashMonth || nowKey;
+  if (month < minKey) month = minKey;
+  if (month > maxKey) month = maxKey;
 
-  // Build rows — only depts that have audits
-  const deptsWithAudits = allDepts.filter(d => byDept[d] && byDept[d].length > 0);
+  const isCurrent = month === nowKey;
+  const prevMonth = shiftMonth(month, -1);
+  const mAbbr     = monthAbbr(month);
+  const pAbbr     = monthAbbr(prevMonth);
+  const mFull     = MONTH_FULL[Number(month.slice(5, 7)) - 1];
+  const bucket    = byMonth[month] || {};
+  const prevBkt   = byMonth[prevMonth] || {};
+  const score     = roundScore(monthScore(bucket));
+  const prevScore = roundScore(monthScore(prevBkt));
+  const doneDepts = allDepts.filter(d => bucket[d]);
+  const leftDepts = allDepts.filter(d => !bucket[d]);
+  const opps      = monthOpportunities(bucket);
+  const prevOpps  = monthOpportunities(prevBkt);
+  const oppTotal  = sumOpps(opps);
+  const prevOppTotal = sumOpps(prevOpps);
+  const hasPrev   = Object.keys(prevBkt).length > 0;
 
-  const doneCount = deptsWithAudits.length;
-  const totalCount = allDepts.length;
-  const leftCount = totalCount - doneCount;
-  const pct = totalCount > 0 ? (doneCount / totalCount * 100) : 0;
-  const allDone = leftCount === 0;
-  const progressHtml = `
-    <div class="dash-progress-wrap">
-      <div class="dash-progress-top">
-        <span class="dash-progress-lbl">${doneCount} of ${totalCount} departments audited</span>
-        <span class="dash-progress-left${allDone ? ' done' : ''}">${allDone ? 'All done!' : leftCount + ' left'}</span>
+  // ── Month navigation
+  const navHtml = `
+    <div class="dash-month-nav">
+      <button class="dash-month-btn" aria-label="Previous month" ${month <= minKey ? 'disabled' : ''}
+        onclick="setDashMonth('${shiftMonth(month, -1)}')">&lsaquo;</button>
+      <div class="dash-month-title">
+        <h2>${esc(monthName(month))}</h2>
+        <p>${esc(pd.label)} · ${isCurrent ? 'This month' : '<button type="button" class="link-btn" onclick="setDashMonth(currentMonthKey())">Back to this month</button>'}</p>
       </div>
-      <div class="dash-progress-bar-wrap">
-        <div class="dash-progress-bar-fill${allDone ? ' done' : ''}" style="width:${pct}%"></div>
+      <button class="dash-month-btn" aria-label="Next month" ${month >= maxKey ? 'disabled' : ''}
+        onclick="setDashMonth('${shiftMonth(month, 1)}')">&rsaquo;</button>
+    </div>`;
+
+  // ── KPI tiles
+  let scoreSub;
+  if (score === null)          scoreSub = `No audits in ${mAbbr}`;
+  else if (prevScore === null) scoreSub = `Goal ${SCORE_GOAL.toFixed(1)} · no ${pAbbr} data`;
+  else {
+    const d = Math.round((score - prevScore) * 10) / 10;
+    const cls = d > 0 ? 'up' : d < 0 ? 'down' : '';
+    const arrow = d > 0 ? '↑' : d < 0 ? '↓' : '→';
+    scoreSub = `<span class="${cls}">${arrow} ${Math.abs(d).toFixed(1)}</span> vs ${pAbbr} (${prevScore.toFixed(1)})`;
+  }
+
+  let oppSub;
+  if (!doneDepts.length) oppSub = 'Nothing audited yet';
+  else if (!hasPrev)     oppSub = `Scored below ${OPP_THRESHOLD} · no ${pAbbr} data`;
+  else {
+    const d = oppTotal - prevOppTotal;
+    const cls = d < 0 ? 'up' : d > 0 ? 'down' : '';
+    const arrow = d > 0 ? '↑' : d < 0 ? '↓' : '→';
+    oppSub = `<span class="${cls}">${arrow} ${Math.abs(d)}</span> vs ${pAbbr} (${prevOppTotal})`;
+  }
+
+  const kpiHtml = `
+    <div class="kpi-grid">
+      <div class="kpi ${scoreStatus(score, prevScore)}">
+        <div class="kpi-dot"></div>
+        <div class="kpi-lbl">5S Score</div>
+        <div class="kpi-val">${score === null ? '—' : score.toFixed(1)}<small>${score === null ? '' : ' /5'}</small></div>
+        <div class="kpi-sub">${scoreSub}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Audited</div>
+        <div class="kpi-val">${doneDepts.length}<small>/${allDepts.length}</small></div>
+        <div class="kpi-sub">${leftDepts.length ? `${leftDepts.length} ${isCurrent ? 'left' : 'not audited'}` : 'All departments done'}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-lbl">Opportunities</div>
+        <div class="kpi-val">${doneDepts.length ? oppTotal : '—'}</div>
+        <div class="kpi-sub">${oppSub}</div>
+      </div>
+    </div>
+    <div class="status-legend">
+      <span><i style="background:#16a34a"></i>At/above goal (${SCORE_GOAL.toFixed(1)})</span>
+      <span><i style="background:#eab308"></i>Below goal, better than last month</span>
+      <span><i style="background:#dc2626"></i>Below goal, not improving</span>
+    </div>`;
+
+  // ── Round progress + what's left
+  const pct     = allDepts.length ? doneDepts.length / allDepts.length * 100 : 0;
+  const allDone = leftDepts.length === 0;
+  let remainingHtml = '';
+  if (!allDone && isCurrent) {
+    remainingHtml = `
+      <div class="dash-remaining-lbl">Still to audit — tap one to start it</div>
+      <div class="dash-chips">${leftDepts.map(d =>
+        `<button type="button" class="dash-chip" data-dept="${esc(d)}" onclick="startAuditFor(this.dataset.dept)">${esc(d)}</button>`).join('')}</div>`;
+  } else if (!allDone) {
+    remainingHtml = `
+      <div class="dash-remaining-lbl">Not audited in ${esc(mFull)}</div>
+      <div class="dash-remaining-text">${leftDepts.map(esc).join(' · ')}</div>`;
+  }
+  const progressHtml = `
+    <div class="card">
+      <div class="dash-progress-wrap">
+        <div class="dash-progress-top">
+          <span class="dash-progress-lbl">${doneDepts.length} of ${allDepts.length} departments audited${isCurrent ? ' this month' : ` in ${esc(mFull)}`}</span>
+          <span class="dash-progress-left${allDone ? ' done' : ''}">${allDone ? 'All done!' : leftDepts.length + (isCurrent ? ' left' : ' missed')}</span>
+        </div>
+        <div class="dash-progress-bar-wrap">
+          <div class="dash-progress-bar-fill${allDone ? ' done' : ''}" style="width:${pct}%"></div>
+        </div>
+        ${remainingHtml}
       </div>
     </div>`;
 
-  if (!deptsWithAudits.length) {
-    body.innerHTML = progressHtml + `
-      <div class="dash-empty">
-        <div class="icon">📊</div>
-        <p>No audits saved yet for ${pd.label}.<br>Complete an audit to see scores here.</p>
-      </div>`;
-    return;
-  }
+  // ── Charts
+  const year = month.slice(0, 4);
+  const trendCard = `
+    <div class="card">
+      <div class="card-head">${year} 5S Score by Month
+        <div class="card-sub">Average of department scores · tap a bar to view that month</div>
+      </div>
+      <div class="chart-body"><div class="chart-host" id="trend-chart"></div></div>
+    </div>`;
+  const oppCard = `
+    <div class="card">
+      <div class="card-head">5S Opportunities
+        <div class="card-sub">Items scored below ${OPP_THRESHOLD} · ${mAbbr} vs ${pAbbr}</div>
+      </div>
+      <div class="chart-body">${buildOppHtml(opps, prevOpps, mAbbr, pAbbr)}</div>
+    </div>`;
 
-  body.innerHTML = progressHtml + deptsWithAudits.map(dept => {
-    const audits  = byDept[dept];
-    const latest  = audits[0];
-    const itemCnt = latest.sections.reduce((n, s) => n + s.items.length, 0);
-    const avg     = itemCnt > 0 ? latest.total / itemCnt : 0;
-    const avgStr  = avg.toFixed(1);
-
-    // Color pill
-    let pillCls = 'dash-pill-gray';
-    if (avg >= 4.0)      pillCls = 'dash-pill-green';
-    else if (avg >= 3.0) pillCls = 'dash-pill-amber';
-    else                 pillCls = 'dash-pill-red';
-
-    // Trend arrow
+  // ── Department list for the month
+  const rows = doneDepts.map(d => {
+    const a    = bucket[d];
+    const avg  = auditAvg(a);
+    const prev = audits.filter(x => x.dept === d && auditSortKey(x) < auditSortKey(a)).sort(newestFirst)[0];
     let trendHtml = '';
-    if (audits.length >= 2) {
-      const prev     = audits[1];
-      const prevCnt  = prev.sections.reduce((n, s) => n + s.items.length, 0);
-      const prevAvg  = prevCnt > 0 ? prev.total / prevCnt : 0;
-      const diff     = avg - prevAvg;
-      if (diff > 0.05)       trendHtml = '<span class="dash-trend trend-up">↑</span>';
-      else if (diff < -0.05) trendHtml = '<span class="dash-trend trend-down">↓</span>';
-      else                   trendHtml = '<span class="dash-trend trend-flat">→</span>';
+    if (prev) {
+      const diff = avg - auditAvg(prev);
+      const tip  = `vs previous audit (${auditAvg(prev).toFixed(1)})`;
+      if (diff > 0.05)       trendHtml = `<span class="dash-trend trend-up" title="${tip}">↑</span>`;
+      else if (diff < -0.05) trendHtml = `<span class="dash-trend trend-down" title="${tip}">↓</span>`;
+      else                   trendHtml = `<span class="dash-trend trend-flat" title="${tip}">→</span>`;
     }
-
+    const meta = [fmtShortDate(a.date), a.auditor].filter(Boolean).map(esc).join(' · ');
     return `
-      <div class="dash-dept-row" onclick="openDeptLatest('${dept.replace(/'/g,"\\'")}')">
-        <div class="dash-dept-name">${dept}</div>
+      <div class="dash-dept-row" data-id="${esc(a.id)}" onclick="loadAudit(this.dataset.id)">
+        <div class="dash-dept-name">${esc(d)}<div class="dash-dept-date">${meta}</div></div>
         <div class="dash-right">
-          <span class="dash-score-pill ${pillCls}">${avgStr}</span>
+          <span class="dash-score-pill ${deptPillClass(avg)}">${avg.toFixed(1)}</span>
           ${trendHtml}
         </div>
       </div>`;
   }).join('');
+  const deptCard = `
+    <div class="card">
+      <div class="card-head">Department Scores — ${esc(monthName(month))}</div>
+      ${rows || `<div class="dash-empty-sm">No departments audited in ${esc(mFull)} yet.</div>`}
+    </div>`;
+
+  body.innerHTML = navHtml + kpiHtml + progressHtml +
+    `<div class="dash-grid">${trendCard}${oppCard}</div>` + deptCard;
+
+  // Trend chart is drawn at the container's real pixel width so text stays crisp and readable
+  const host = document.getElementById('trend-chart');
+  if (host) host.innerHTML = buildTrendSvg(year, byMonth, month, host.clientWidth || 520);
+
+  document.getElementById('app-version').textContent = 'Version ' + APP_VERSION;
 }
 
-function openDeptLatest(dept) {
-  const all    = getAllAudits();
-  const audits = all.filter(a => a.dept === dept)
-                    .sort((a, b) => (b.savedAt || b.date || '') > (a.savedAt || a.date || '') ? 1 : -1);
-  if (!audits.length) return;
-  loadAudit(audits[0].id);
+function buildTrendSvg(year, byMonth, selected, width) {
+  const prevYear = String(Number(year) - 1);
+  const cur  = [], prior = [];
+  for (let m = 1; m <= 12; m++) {
+    cur.push(roundScore(monthScore(byMonth[`${year}-${pad2(m)}`])));
+    prior.push(roundScore(monthScore(byMonth[`${prevYear}-${pad2(m)}`])));
+  }
+  const hasCur = cur.some(v => v !== null), hasPrior = prior.some(v => v !== null);
+  if (!hasCur && !hasPrior) return `<div class="chart-empty">No scores recorded in ${year} yet.<br>Save an audit and it will show up here.</div>`;
+
+  const W = Math.max(260, Math.floor(width)), H = 230;
+  const L = 26, R = 6, T = 16, B = 24;
+  const pw = W - L - R, ph = H - T - B;
+  const y = v => T + ph * (1 - v / 5);
+  const slot = pw / 12;
+  const bw = Math.min(30, slot * 0.6);
+  const cx = i => L + slot * (i + 0.5);
+
+  let labels = ''; // value labels, drawn after the goal/prior-year lines so they stay readable
+  let hits   = ''; // transparent per-month tap targets, topmost
+  let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${year} monthly 5S score">`;
+  for (let v = 0; v <= 5; v++) {
+    s += `<line x1="${L}" y1="${y(v)}" x2="${W - R}" y2="${y(v)}" stroke="#e2e8f0" stroke-width="1"/>`;
+    s += `<text x="${L - 6}" y="${y(v) + 3.5}" text-anchor="end" font-size="10" fill="#5b7290">${v}</text>`;
+  }
+  cur.forEach((v, i) => {
+    const key = `${year}-${pad2(i + 1)}`;
+    const isSel = key === selected;
+    if (v !== null) {
+      const top = y(v);
+      s += `<rect x="${cx(i) - bw / 2}" y="${top}" width="${bw}" height="${Math.max(1, y(0) - top)}" rx="3" fill="${isSel ? '#f59e0b' : '#305496'}"/>`;
+      labels += `<text x="${cx(i)}" y="${top - 4}" text-anchor="middle" font-size="10" font-weight="800" fill="${isSel ? '#b45309' : '#1a2744'}" stroke="#fff" stroke-width="3" stroke-linejoin="round" paint-order="stroke">${v.toFixed(1)}</text>`;
+      hits += `<rect x="${L + slot * i}" y="${T}" width="${slot}" height="${ph + B}" fill="transparent" style="cursor:pointer" onclick="setDashMonth('${key}')"><title>${MONTH_FULL[i]} ${year}: ${v.toFixed(1)}</title></rect>`;
+    }
+    s += `<text x="${cx(i)}" y="${H - 7}" text-anchor="middle" font-size="10" font-weight="${isSel ? 800 : 600}" fill="${isSel ? '#b45309' : '#5b7290'}">${MONTH_ABBR[i]}</text>`;
+  });
+  s += `<line x1="${L}" y1="${y(SCORE_GOAL)}" x2="${W - R}" y2="${y(SCORE_GOAL)}" stroke="#dc2626" stroke-width="1.75" stroke-dasharray="5 4"/>`;
+  if (hasPrior) {
+    let seg = [];
+    const flush = () => {
+      if (seg.length > 1) s += `<polyline points="${seg.join(' ')}" fill="none" stroke="#16a34a" stroke-width="2"/>`;
+      seg = [];
+    };
+    prior.forEach((v, i) => { if (v === null) flush(); else seg.push(`${cx(i)},${y(v)}`); });
+    flush();
+    prior.forEach((v, i) => {
+      if (v !== null) s += `<circle cx="${cx(i)}" cy="${y(v)}" r="3" fill="#16a34a"><title>${MONTH_FULL[i]} ${prevYear}: ${v.toFixed(1)}</title></circle>`;
+    });
+  }
+  s += labels + hits + '</svg>';
+
+  s += `<div class="chart-legend">
+    <span class="lg"><span class="lg-sw" style="background:#305496"></span>${year}</span>
+    <span class="lg"><span class="lg-sw" style="background:#f59e0b"></span>Viewing</span>
+    ${hasPrior ? `<span class="lg"><span class="lg-line" style="border-color:#16a34a"></span>${prevYear}</span>` : ''}
+    <span class="lg"><span class="lg-line lg-dash" style="border-color:#dc2626"></span>Goal (${SCORE_GOAL.toFixed(1)})</span>
+  </div>`;
+  return s;
 }
+
+function buildOppHtml(opps, prevOpps, mAbbr, pAbbr) {
+  const labels = Object.keys(opps);
+  Object.keys(prevOpps).forEach(l => { if (labels.indexOf(l) < 0) labels.push(l); });
+  const rows = labels.map(l => ({
+    label: l,
+    cur:   opps[l] ? opps[l].count : 0,
+    prev:  prevOpps[l] ? prevOpps[l].count : 0,
+    depts: opps[l] ? opps[l].depts : [],
+  })).sort((a, b) => b.cur - a.cur || b.prev - a.prev || a.label.localeCompare(b.label)).slice(0, 6);
+
+  if (!rows.length) {
+    return `<div class="chart-empty">No items scored below ${OPP_THRESHOLD} in ${mAbbr} or ${pAbbr}.</div>`;
+  }
+  const max = Math.max(1, ...rows.map(r => Math.max(r.cur, r.prev)));
+  const bar = (n, cls) => `
+    <div class="opp-bar-line">
+      <div class="opp-track"><div class="opp-bar ${n ? cls : 'zero'}" style="width:${n / max * 100}%"></div></div>
+      <span class="opp-num">${n}</span>
+    </div>`;
+  const deptList = d => d.length > 4 ? d.slice(0, 4).map(esc).join(' · ') + ` +${d.length - 4} more` : d.map(esc).join(' · ');
+
+  return rows.map(r => `
+    <div class="opp-row">
+      <div class="opp-label">${esc(r.label)}</div>
+      ${bar(r.cur, 'cur')}
+      ${bar(r.prev, 'prev')}
+      ${r.depts.length ? `<div class="opp-depts">${deptList(r.depts)}</div>` : ''}
+    </div>`).join('') + `
+    <div class="chart-legend">
+      <span class="lg"><span class="lg-sw" style="background:#1f5f7a"></span>${mAbbr}</span>
+      <span class="lg"><span class="lg-sw" style="background:#c0504d"></span>${pAbbr}</span>
+    </div>`;
+}
+
+// True when the audit form holds scores/notes/photos that haven't been saved yet
+function hasUnsavedWork() {
+  if (!activeDept) return false;
+  if (savedId && getAllAudits().some(a => a.id === savedId)) return false;
+  return Object.values(scores).some(c =>
+    (c.score !== null && c.score !== undefined) || (c.remarks && c.remarks.trim()) || (c.photos && c.photos.length));
+}
+
+function startAuditFor(dept) {
+  // Already mid-way through this department's audit — just go back to it
+  if (activeDept === dept && !(savedId && getAllAudits().some(a => a.id === savedId))) {
+    switchTab('audit');
+    return;
+  }
+  const go = () => {
+    switchTab('audit');
+    document.getElementById('f-dept').value = dept;
+    onDeptChange();
+    setFormDateTimeToNow();
+    window.scrollTo(0, 0);
+  };
+  if (hasUnsavedWork() && activeDept !== dept) {
+    openDlg('Discard unsaved audit?', `Your ${activeDept} audit hasn't been saved. Discard it and start ${dept}?`, go);
+  } else {
+    go();
+  }
+}
+
+let dashResizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(dashResizeTimer);
+  dashResizeTimer = setTimeout(() => {
+    if (document.getElementById('view-dashboard').classList.contains('active')) renderDashboard();
+  }, 150);
+});
 
 // ══════════════════════════════════════════════════════════
 // BUILD AUDIT FORM
 // ══════════════════════════════════════════════════════════
 function onDeptChange() {
+  // Switching away from a saved audit starts a brand-new one — don't inherit its old date
+  const wasSaved = savedId && getAllAudits().some(a => a.id === savedId);
   discardUnsavedDraftPhotos();
   activeDept = document.getElementById('f-dept').value;
   scores  = {};
   savedId = null;
+  if (wasSaved) setFormDateTimeToNow();
   renderSections();
 }
 
@@ -1832,7 +2394,7 @@ function saveAudit() {
   const all = getAllAudits();
   const idx = all.findIndex(a => a.id === id);
   if (idx >= 0) all[idx] = audit; else all.unshift(audit);
-  localStorage.setItem(pd.storageKey, JSON.stringify(all));
+  if (!writeAudits(all)) return;
 
   document.getElementById('export-row').style.display    = 'flex';
   document.getElementById('new-audit-row').style.display = 'flex';
@@ -1841,11 +2403,19 @@ function saveAudit() {
 
 function newAudit() {
   document.getElementById('f-auditor').value = 'Chase S.';
-  const today = new Date();
-  document.getElementById('f-date').value = today.toISOString().slice(0, 10);
-  document.getElementById('f-time').value = today.toTimeString().slice(0, 5);
+  setFormDateTimeToNow();
   resetAuditView();
   window.scrollTo(0, 0);
+}
+
+function writeAudits(list) {
+  try {
+    localStorage.setItem(PLANT_DATA[activePlant].storageKey, JSON.stringify(list));
+    return true;
+  } catch (e) {
+    toast('Could not save — device storage is full. Export and delete older audits.', 'err');
+    return false;
+  }
 }
 
 function getAllAudits() {
@@ -2139,6 +2709,17 @@ async function buildMultiSheetWorkbook(audits) {
   return wb;
 }
 
+// Workbook sheet order: newest month first, then the plant's department order
+function sortForExport(audits) {
+  const order = PLANT_DATA[activePlant].deptGroups.reduce((acc, g) => acc.concat(g.depts), []);
+  const idx = d => { const i = order.indexOf(d); return i < 0 ? order.length : i; };
+  return audits.slice().sort((a, b) => {
+    const ma = auditMonth(a), mb = auditMonth(b);
+    if (ma !== mb) return ma < mb ? 1 : -1;
+    return idx(a.dept) - idx(b.dept) || (auditSortKey(a) < auditSortKey(b) ? -1 : 1);
+  });
+}
+
 function multiAuditFilename(audits, label) {
   const suffix = PLANT_DATA[activePlant].exportSuffix;
   const dates  = audits.map(a => a.date).filter(Boolean).sort();
@@ -2149,15 +2730,16 @@ function multiAuditFilename(audits, label) {
 }
 
 async function exportFullWorkbook() {
-  const all = getAllAudits();
+  const view = getHistoryView();
+  const all  = view.visible;
   if (!all.length) { toast('No saved audits yet', 'err'); return; }
 
   const status = document.getElementById('workbook-status');
   status.style.display = 'block';
   status.textContent   = 'Building workbook…';
 
-  const wb       = await buildMultiSheetWorkbook(all);
-  const filename = multiAuditFilename(all, 'Audits');
+  const wb       = await buildMultiSheetWorkbook(sortForExport(all));
+  const filename = multiAuditFilename(all, view.sel === 'all' ? 'AllAudits' : 'Audits');
   const buffer   = await wb.xlsx.writeBuffer();
   const blob     = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   downloadBlob(blob, filename);
@@ -2175,7 +2757,7 @@ function toggleAuditSelect(id, checked) {
 }
 
 function selectAllVisible() {
-  getAllAudits().forEach(a => selectedAuditIds.add(a.id));
+  getHistoryView().visible.forEach(a => selectedAuditIds.add(a.id));
   renderHistory();
 }
 
@@ -2202,7 +2784,7 @@ async function exportSelected() {
   const selected = getSelectedAudits();
   if (!selected.length) { toast('No audits selected', 'err'); return; }
 
-  const wb       = await buildMultiSheetWorkbook(selected);
+  const wb       = await buildMultiSheetWorkbook(sortForExport(selected));
   const filename = multiAuditFilename(selected, 'SelectedAudits');
   const buffer   = await wb.xlsx.writeBuffer();
   const blob     = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -2232,10 +2814,9 @@ function confirmBulkDelete() {
   const selected = getSelectedAudits();
   if (!selected.length) { closeBulkDeleteDlg(); return; }
 
-  const pd  = PLANT_DATA[activePlant];
   const idsToDelete = new Set(selected.map(a => a.id));
   const remaining   = getAllAudits().filter(a => !idsToDelete.has(a.id));
-  localStorage.setItem(pd.storageKey, JSON.stringify(remaining));
+  if (!writeAudits(remaining)) { closeBulkDeleteDlg(); return; }
   selected.forEach(a => deletePhotosByAuditId(a.id));
 
   selectedAuditIds.clear();
@@ -2247,54 +2828,102 @@ function confirmBulkDelete() {
 // ══════════════════════════════════════════════════════════
 // HISTORY
 // ══════════════════════════════════════════════════════════
+// Audits for the History tab, newest first, filtered to the chosen month
+function getHistoryView() {
+  const all = getAllAudits().sort(newestFirst);
+  const counts = {};
+  all.forEach(a => { const m = auditMonth(a) || 'nodate'; counts[m] = (counts[m] || 0) + 1; });
+  const months = Object.keys(counts).sort().reverse();
+  let sel = histMonth;
+  if (sel !== 'all' && !counts[sel]) sel = months[0] || 'all';
+  const visible = sel === 'all' ? all : all.filter(a => (auditMonth(a) || 'nodate') === sel);
+  return { all, months, counts, sel, visible };
+}
+
+function setHistMonth(v) {
+  histMonth = v;
+  selectedAuditIds.clear(); // never let hidden audits stay selected (bulk delete safety)
+  renderHistory();
+}
+
+function histCardHtml(a) {
+  const pct     = a.max ? Math.round((a.total / a.max) * 100) : 0;
+  const parts   = [fmtDate(a.date), fmtTime(a.time), a.auditor].filter(Boolean).map(esc);
+  const checked = selectedAuditIds.has(a.id) ? 'checked' : '';
+  const id      = esc(a.id);
+  return `
+    <div class="hist-card">
+      <div class="hist-card-top">
+        <label class="hist-check">
+          <input type="checkbox" ${checked} data-id="${id}" onchange="toggleAuditSelect(this.dataset.id, this.checked)" aria-label="Select ${esc(a.dept)} audit">
+        </label>
+        <div class="hist-dept">${esc(a.dept)}</div>
+        <div class="hist-score-pill">${a.total}/${a.max} &bull; ${pct}%</div>
+      </div>
+      <div class="hist-meta">${parts.join(' &bull; ')}</div>
+      <div class="hist-actions">
+        <button class="btn-sm btn-sm-amber"   data-id="${id}" onclick="exportById(this.dataset.id)">Export Excel</button>
+        <button class="btn-sm btn-sm-outline" data-id="${id}" onclick="loadAudit(this.dataset.id)">View / Edit</button>
+        <button class="btn-sm btn-sm-red"     data-id="${id}" onclick="confirmDelete(this.dataset.id)">Delete</button>
+      </div>
+    </div>`;
+}
+
 function renderHistory() {
-  const all    = getAllAudits();
+  const view   = getHistoryView();
   const wrap   = document.getElementById('hist-wrap');
   const status = document.getElementById('workbook-status');
+  const filter = document.getElementById('hist-filter');
+  const sel    = document.getElementById('hist-month');
+  const expBtn = document.getElementById('export-full-btn');
   status.style.display = 'none';
   status.textContent   = '';
 
-  // Drop any selected id that no longer exists in this plant's audits
-  const validIds = new Set(all.map(a => a.id));
+  // Drop any selected id that isn't in the current view (deleted, or hidden by the filter)
+  const validIds = new Set(view.visible.map(a => a.id));
   selectedAuditIds.forEach(id => { if (!validIds.has(id)) selectedAuditIds.delete(id); });
 
   const toolbar = document.getElementById('select-toolbar');
 
-  if (!all.length) {
+  if (!view.all.length) {
     wrap.innerHTML = `
       <div class="hist-empty">
         <div class="icon">📋</div>
         <p>No audits saved yet.<br>Complete an audit and tap <strong>Save Audit</strong>.</p>
       </div>`;
     if (toolbar) toolbar.style.display = 'none';
+    filter.style.display = 'none';
+    expBtn.textContent = 'Export Full Workbook (All Departments)';
     updateBulkBar();
     return;
   }
 
+  filter.style.display = 'flex';
+  sel.innerHTML = view.months.map(m =>
+    `<option value="${m}">${esc(monthName(m))} (${view.counts[m]})</option>`).join('') +
+    `<option value="all">All months (${view.all.length})</option>`;
+  sel.value = view.sel;
+  expBtn.textContent = view.sel === 'all'
+    ? 'Export Full Workbook — All Months'
+    : `Export Full Workbook — ${monthName(view.sel)}`;
+
   if (toolbar) toolbar.style.display = 'flex';
   updateBulkBar();
 
-  wrap.innerHTML = all.map(a => {
-    const pct   = a.max ? Math.round((a.total / a.max) * 100) : 0;
-    const parts = [fmtDate(a.date), fmtTime(a.time), a.auditor].filter(Boolean);
-    const checked = selectedAuditIds.has(a.id) ? 'checked' : '';
-    return `
-      <div class="hist-card">
-        <div class="hist-card-top">
-          <label class="hist-check">
-            <input type="checkbox" ${checked} onchange="toggleAuditSelect('${a.id}', this.checked)" aria-label="Select ${a.dept} audit">
-          </label>
-          <div class="hist-dept">${a.dept}</div>
-          <div class="hist-score-pill">${a.total}/${a.max} &bull; ${pct}%</div>
-        </div>
-        <div class="hist-meta">${parts.join(' &bull; ')}</div>
-        <div class="hist-actions">
-          <button class="btn-sm btn-sm-amber"   onclick="exportById('${a.id}')">Export Excel</button>
-          <button class="btn-sm btn-sm-outline"  onclick="loadAudit('${a.id}')">View / Edit</button>
-          <button class="btn-sm btn-sm-red"      onclick="confirmDelete('${a.id}')">Delete</button>
-        </div>
-      </div>`;
-  }).join('');
+  if (view.sel !== 'all') {
+    wrap.innerHTML = view.visible.map(histCardHtml).join('');
+    return;
+  }
+  let html = '', lastMonth = null;
+  view.visible.forEach(a => {
+    const m = auditMonth(a) || 'nodate';
+    if (m !== lastMonth) {
+      html += `<div class="hist-month-hd">${esc(monthName(m))} · ${view.counts[m]} audit${view.counts[m] > 1 ? 's' : ''}</div>`;
+      lastMonth = m;
+    }
+    html += histCardHtml(a);
+  });
+  wrap.innerHTML = html;
 }
 
 function loadAudit(id) {
@@ -2345,10 +2974,9 @@ function loadAudit(id) {
 }
 
 function deleteAudit(id) {
-  const pd  = PLANT_DATA[activePlant];
   const all = getAllAudits();
   const remaining = all.filter(a => a.id !== id);
-  localStorage.setItem(pd.storageKey, JSON.stringify(remaining));
+  if (!writeAudits(remaining)) return;
   deletePhotosByAuditId(id);
   renderHistory();
   toast('Audit deleted');
@@ -2432,26 +3060,35 @@ if ('serviceWorker' in navigator) {
 
 async function checkForUpdate() {
   const btn = document.getElementById('update-btn');
-  if (!('serviceWorker' in navigator)) { toast('Updates not supported on this browser', 'err'); return; }
+  if (!navigator.onLine) { toast("You're offline — connect to check for updates", 'err'); return; }
 
   if (btn) { btn.disabled = true; btn.textContent = '🔄 Checking…'; }
   toast('Checking for update…');
 
   try {
-    const reg = await navigator.serviceWorker.getRegistration();
-    if (!reg) { toast('App is not registered yet — try reloading first', 'err'); return; }
+    // 1) New service worker (cache version bump) — controllerchange listener reloads for us
+    let swFound = false;
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg) {
+      const onFound = () => { swFound = true; };
+      reg.addEventListener('updatefound', onFound);
+      try { await reg.update(); } catch (e) {}
+      await new Promise(r => setTimeout(r, 1000));
+      reg.removeEventListener('updatefound', onFound);
+    }
+    if (swFound) return;
 
-    let found = false;
-    const onFound = () => { found = true; };
-    reg.addEventListener('updatefound', onFound);
-
-    await reg.update();
-    await new Promise(r => setTimeout(r, 1200));
-    reg.removeEventListener('updatefound', onFound);
-
-    // If an update was found, the controllerchange listener above reloads
-    // automatically once it finishes installing — nothing else to do here.
-    if (!found) toast("You're already on the latest version", 'ok');
+    // 2) New app page — compare our version stamp against the live copy
+    const res = await fetch('./index.html', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const m = (await res.text()).match(/APP_VERSION\s*=\s*'([^']+)'/);
+    if (m && m[1] !== APP_VERSION) {
+      toast('Update found — reloading…', 'ok');
+      // A fresh URL sidesteps the host's short-lived browser cache of index.html
+      setTimeout(() => { window.location.href = './index.html?v=' + encodeURIComponent(m[1]); }, 600);
+      return;
+    }
+    toast("You're already on the latest version", 'ok');
   } catch (err) {
     toast('Could not check for update', 'err');
   } finally {
