@@ -969,6 +969,30 @@ body {
   color: var(--text);
 }
 .dlg-input:focus { outline: none; border-color: var(--red); background: #fff; }
+.dlg-lbl {
+  display: block;
+  font-size: .66rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 5px;
+}
+.dlg-text {
+  width: 100%;
+  padding: 11px 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: .95rem;
+  background: var(--surface);
+  color: var(--text);
+  margin-bottom: 12px;
+  font-family: inherit;
+}
+.dlg-text:focus { outline: none; border-color: var(--amber); background: #fff; }
+.dlg-hint { font-size: .76rem; line-height: 1.4; color: var(--muted); min-height: 1.1em; }
+.dlg-hint.err { color: var(--red); font-weight: 700; }
+.custom-dept-note { font-size: .74rem; color: var(--muted); margin-top: 6px; }
 
 /* ── TOAST ──────────────────────────────────────── */
 .toast {
@@ -1101,6 +1125,10 @@ body {
           <select id="f-dept" onchange="onDeptChange()">
             <option value="">— Select Department —</option>
           </select>
+          <div class="custom-dept-note" id="custom-dept-note" style="display:none">
+            Added department · <span id="custom-dept-type"></span> ·
+            <button type="button" class="link-btn" onclick="confirmRemoveCustomDept()">Remove from list</button>
+          </div>
         </div>
         <div class="field">
           <label>Auditor</label>
@@ -1197,6 +1225,24 @@ body {
   </div>
 </div>
 
+<!-- ══════════════ ADD DEPARTMENT ══════════════ -->
+<div class="overlay hidden" id="add-dept-overlay">
+  <div class="dialog">
+    <h3>Add a Department</h3>
+    <p>For a department that isn't in the list yet. It's saved to <strong id="add-dept-plant">this plant</strong>'s list so you can audit it every month.</p>
+    <label class="dlg-lbl" for="add-dept-name">Department name</label>
+    <input type="text" id="add-dept-name" class="dlg-text" maxlength="40" autocomplete="off"
+      placeholder="e.g. Tube Cell" oninput="onAddDeptInput()" onkeydown="if (event.key === 'Enter') confirmAddDept()">
+    <label class="dlg-lbl" for="add-dept-type">Use the checklist for</label>
+    <select id="add-dept-type" class="dlg-text"></select>
+    <div class="dlg-hint" id="add-dept-hint"></div>
+    <div class="dialog-btns" style="margin-top:16px">
+      <button class="btn btn-outline" style="flex:1;padding:13px" onclick="closeAddDeptDlg()">Cancel</button>
+      <button class="btn btn-navy"    style="flex:1;padding:13px" id="add-dept-ok" disabled onclick="confirmAddDept()">Add &amp; Start</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════ BULK DELETE CONFIRM (type-to-confirm) ══════════════ -->
 <div class="overlay hidden" id="bulk-delete-overlay">
   <div class="dialog">
@@ -1288,15 +1334,18 @@ function p2GetShine(dept) {
   if (P2_WELD_DEPTS.has(dept)) return P2_SHINE_WELD;
   return P2_SHINE_STD;
 }
-function p2GetSections(dept) {
+function p2Sections(shine) {
   return [
     { key:'sort',  label:'Sort',        cls:'sec-sort',  items: P2_SORT },
     { key:'set',   label:'Set in Place',cls:'sec-set',   items: P2_SET  },
-    { key:'shine', label:'Shine',       cls:'sec-shine', items: p2GetShine(dept) },
+    { key:'shine', label:'Shine',       cls:'sec-shine', items: shine },
     { key:'std',   label:'Standardize', cls:'sec-std',   items: P2_STANDARDIZE },
     { key:'sus',   label:'Sustain',     cls:'sec-sus',   items: P2_SUSTAIN },
   ];
 }
+function p2GetSections(dept) { return p2Sections(p2GetShine(dept)); }
+// Checklists offered for departments added by the auditor ("Add a department not listed")
+const P2_SHINE_BY_TYPE = { std: P2_SHINE_STD, weld: P2_SHINE_WELD, paint: P2_SHINE_PAINT, burn: P2_SHINE_BURN };
 
 // ══════════════════════════════════════════════════════════
 // PLANT 1 DATA
@@ -1378,7 +1427,7 @@ const P1_SUS_WELD_FAB = [
   '5S Diagram posted in work areas',
   'Last audit is posted and fixes in process',
 ];
-const P1_WELD_DEPTS    = new Set(['Weld & Fab','Large Bucket 1','Large Bucket 2','Custom Fab','WL Couplers','Bushing Inst & Weld','Weld 1','Weld 2']);
+const P1_WELD_DEPTS    = new Set(['Weld & Fab','Large Bucket 1','Large Bucket 2','Large Thumbs','Custom Fab','CTL','WL Couplers','Bushing Inst & Weld','Weld 1','Weld 2']);
 const P1_BURN_DEPTS    = new Set(['Burn Bay 1','Burn Bay 2','Burn Bay 3']);
 const P1_CI_ASSEMBLY   = new Set(['Continuous Improvement','Assembly']);
 const P1_MACHINE_DEPTS = new Set(['Machine Shop','Saw']);
@@ -1396,15 +1445,20 @@ function p1GetShine(dept) {
 function p1GetSustain(dept) {
   return dept === 'Weld & Fab' ? P1_SUS_WELD_FAB : P1_SUS_DEFAULT;
 }
-function p1GetSections(dept) {
+function p1Sections(shine, sustain) {
   return [
     { key:'sort',  label:'Sort',        cls:'sec-sort',  items: P1_SORT },
     { key:'set',   label:'Set in Place',cls:'sec-set',   items: P1_SET  },
-    { key:'shine', label:'Shine',       cls:'sec-shine', items: p1GetShine(dept) },
+    { key:'shine', label:'Shine',       cls:'sec-shine', items: shine },
     { key:'std',   label:'Standardize', cls:'sec-std',   items: P1_STANDARDIZE },
-    { key:'sus',   label:'Sustain',     cls:'sec-sus',   items: p1GetSustain(dept) },
+    { key:'sus',   label:'Sustain',     cls:'sec-sus',   items: sustain },
   ];
 }
+function p1GetSections(dept) { return p1Sections(p1GetShine(dept), p1GetSustain(dept)); }
+const P1_SHINE_BY_TYPE = {
+  weld: P1_SHINE_WELD, machine: P1_SHINE_MACHINE, ci: P1_SHINE_CI, maintenance: P1_SHINE_MAINTENANCE,
+  shipping: P1_SHINE_SHIPPING, paint: P1_SHINE_PAINT, burn: P1_SHINE_BURN,
+};
 
 // ══════════════════════════════════════════════════════════
 // PLANT CONFIG
@@ -1423,6 +1477,13 @@ const PLANT_DATA = {
       { label:'Burn Bay', depts:['Burn Bay 1','Burn Bay 2','Burn Bay 3'] },
     ],
     getSections: p2GetSections,
+    checklistTypes: [
+      { key:'std',   label:'Standard area (like Shipping, Assembly)' },
+      { key:'weld',  label:'Weld / Fabrication (like Couplers, Thumbs)' },
+      { key:'paint', label:'Paint' },
+      { key:'burn',  label:'Burn Bay / Laser' },
+    ],
+    sectionsForType: t => p2Sections(P2_SHINE_BY_TYPE[t] || P2_SHINE_STD),
   },
   p1: {
     label:       'Plant 1',
@@ -1431,14 +1492,72 @@ const PLANT_DATA = {
     colWidths:   [{width:6.29},{width:13.29},{width:8.43},{width:43.14},{width:5},{width:8.43},{width:10},{width:8.43},{width:30.14}],
     burnDepts:   P1_BURN_DEPTS,
     deptGroups: [
-      { label:'Weld',     depts:['Weld & Fab','Large Bucket 1','Large Bucket 2','Custom Fab','WL Couplers','Bushing Inst & Weld','Weld 1','Weld 2'] },
+      { label:'Weld / Fabrication', depts:['Weld & Fab','Large Bucket 1','Large Bucket 2','Large Thumbs','Custom Fab','CTL','WL Couplers','Bushing Inst & Weld','Weld 1','Weld 2'] },
       { label:'Burn Bay', depts:['Burn Bay 1','Burn Bay 2','Burn Bay 3'] },
       { label:'Standard', depts:['Continuous Improvement','Assembly','Machine Shop','Saw','Maintenance','Shipping'] },
       { label:'Paint',    depts:['Paint'] },
     ],
     getSections: p1GetSections,
+    checklistTypes: [
+      { key:'weld',        label:'Weld / Fabrication (like Weld 1, CTL)' },
+      { key:'machine',     label:'Machine / Saw (like Machine Shop)' },
+      { key:'ci',          label:'Assembly / CI (like Assembly)' },
+      { key:'maintenance', label:'Maintenance' },
+      { key:'shipping',    label:'Shipping' },
+      { key:'paint',       label:'Paint' },
+      { key:'burn',        label:'Burn Bay' },
+    ],
+    sectionsForType: t => p1Sections(P1_SHINE_BY_TYPE[t] || P1_SHINE_WELD, P1_SUS_DEFAULT),
   },
 };
+
+// ══════════════════════════════════════════════════════════
+// DEPARTMENTS (built-in + ones the auditor adds on the floor)
+// ══════════════════════════════════════════════════════════
+const ADD_DEPT_VALUE = '__add_dept__';
+
+function customDeptKey(plant) { return PLANT_DATA[plant].storageKey + '-custom-depts'; }
+
+// [{ name, type, hidden? }] — removed ones stay (hidden) so old audits of them still load correctly
+function getCustomDepts(plant) {
+  try {
+    const arr = JSON.parse(localStorage.getItem(customDeptKey(plant)) || '[]');
+    return Array.isArray(arr) ? arr.filter(d => d && typeof d.name === 'string' && d.name && d.type) : [];
+  } catch (e) { return []; }
+}
+
+function saveCustomDepts(plant, list) {
+  try { localStorage.setItem(customDeptKey(plant), JSON.stringify(list)); return true; }
+  catch (e) { toast('Could not save — device storage is full.', 'err'); return false; }
+}
+
+function isBuiltInDept(plant, dept) {
+  return PLANT_DATA[plant].deptGroups.some(g => g.depts.indexOf(dept) >= 0);
+}
+
+function findCustomDept(plant, dept) {
+  if (isBuiltInDept(plant, dept)) return null;
+  return getCustomDepts(plant).find(d => d.name === dept) || null;
+}
+
+function getDeptGroups(plant) {
+  const added = getCustomDepts(plant).filter(d => !d.hidden).map(d => d.name);
+  const groups = PLANT_DATA[plant].deptGroups;
+  return added.length ? groups.concat([{ label: 'Added Departments', depts: added }]) : groups;
+}
+
+function getDeptList(plant) { return getDeptGroups(plant).reduce((acc, g) => acc.concat(g.depts), []); }
+
+function getPlantSections(plant, dept) {
+  const custom = findCustomDept(plant, dept);
+  return custom ? PLANT_DATA[plant].sectionsForType(custom.type) : PLANT_DATA[plant].getSections(dept);
+}
+
+function isBurnDept(plant, dept) {
+  if (PLANT_DATA[plant].burnDepts.has(dept)) return true;
+  const custom = findCustomDept(plant, dept);
+  return !!custom && custom.type === 'burn';
+}
 
 // ══════════════════════════════════════════════════════════
 // PHOTO STORAGE (IndexedDB — photos are too large for localStorage)
@@ -1613,7 +1732,7 @@ let dashMonth           = null;      // 'YYYY-MM' the dashboard is showing; null
 let histMonth           = null;      // 'YYYY-MM' | 'all' | null (= most recent month with audits)
 
 // Bump on every deploy — "Check for Update" compares this against the live copy.
-const APP_VERSION     = '2026.09.28';
+const APP_VERSION     = '2026.09.29';
 const SCORE_GOAL      = 3.0;  // plant-wide monthly target (matches the 5S scorecard goal line)
 const OPP_THRESHOLD   = 3;    // an item scored below this counts as a 5S opportunity
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1715,18 +1834,32 @@ function applyPlantUI() {
 
 function renderDeptOptions() {
   const sel = document.getElementById('f-dept');
-  const pd  = PLANT_DATA[activePlant];
   sel.innerHTML = '<option value="">— Select Department —</option>';
-  pd.deptGroups.forEach(grp => {
+  getDeptGroups(activePlant).forEach(grp => {
     const og = document.createElement('optgroup');
     og.label = grp.label;
     grp.depts.forEach(d => {
       const opt = document.createElement('option');
+      opt.value = d;
       opt.textContent = d;
       og.appendChild(opt);
     });
     sel.appendChild(og);
   });
+  const add = document.createElement('option');
+  add.value = ADD_DEPT_VALUE;
+  add.textContent = '➕ Add a department not listed…';
+  sel.appendChild(add);
+}
+
+// Makes sure a saved audit's department can be shown/re-saved even if it's no longer in the list
+function ensureDeptOption(dept) {
+  const sel = document.getElementById('f-dept');
+  if (!dept || [...sel.options].some(o => o.value === dept)) return;
+  const opt = document.createElement('option');
+  opt.value = dept;
+  opt.textContent = dept;
+  sel.insertBefore(opt, sel.lastElementChild);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1816,7 +1949,7 @@ function setDashMonth(key) {
 function renderDashboard() {
   const pd       = PLANT_DATA[activePlant];
   const body     = document.getElementById('dash-body');
-  const allDepts = pd.deptGroups.reduce((acc, g) => acc.concat(g.depts), []);
+  const allDepts = getDeptList(activePlant);
   const deptSet  = new Set(allDepts);
   const audits   = getAllAudits().filter(a => deptSet.has(a.dept));
   const byMonth  = latestByMonth(audits);
@@ -2100,7 +2233,7 @@ function startAuditFor(dept) {
   const go = () => {
     switchTab('audit');
     document.getElementById('f-dept').value = dept;
-    onDeptChange();
+    applyDeptChange();
     setFormDateTimeToNow();
     window.scrollTo(0, 0);
   };
@@ -2122,7 +2255,130 @@ window.addEventListener('resize', () => {
 // ══════════════════════════════════════════════════════════
 // BUILD AUDIT FORM
 // ══════════════════════════════════════════════════════════
+// ── Add / remove departments that aren't built in ──
+function cleanDeptName(v) { return String(v || '').replace(/\s+/g, ' ').trim(); }
+
+// null = ok, '' = empty (no message), otherwise the reason it can't be used
+function addDeptNameProblem(name) {
+  if (!name) return '';
+  if (name === ADD_DEPT_VALUE) return 'Please pick a different name.';
+  const taken = getDeptList(activePlant).find(d => d.toLowerCase() === name.toLowerCase());
+  if (taken) return `${taken} is already in the ${PLANT_DATA[activePlant].label} list — pick it from the dropdown.`;
+  return null;
+}
+
+function openAddDeptDlg() {
+  const pd = PLANT_DATA[activePlant];
+  document.getElementById('add-dept-plant').textContent = pd.label;
+  document.getElementById('add-dept-type').innerHTML =
+    pd.checklistTypes.map(t => `<option value="${t.key}">${esc(t.label)}</option>`).join('');
+  const input = document.getElementById('add-dept-name');
+  input.value = '';
+  onAddDeptInput();
+  document.getElementById('add-dept-overlay').classList.remove('hidden');
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeAddDeptDlg() {
+  document.getElementById('add-dept-overlay').classList.add('hidden');
+}
+
+function onAddDeptInput() {
+  const name    = cleanDeptName(document.getElementById('add-dept-name').value);
+  const problem = addDeptNameProblem(name);
+  const hint    = document.getElementById('add-dept-hint');
+  document.getElementById('add-dept-ok').disabled = !(name && problem === null);
+  hint.className   = 'dlg-hint' + (problem ? ' err' : '');
+  hint.textContent = problem || '';
+}
+
+function confirmAddDept() {
+  if (document.getElementById('add-dept-ok').disabled) return;
+  const name = cleanDeptName(document.getElementById('add-dept-name').value);
+  if (addDeptNameProblem(name) !== null) return;
+  const plantLabel = PLANT_DATA[activePlant].label;
+  let type = document.getElementById('add-dept-type').value;
+
+  const list = getCustomDepts(activePlant);
+  const existing = list.find(d => d.name === name);
+  if (existing) {
+    // Re-adding one that was removed: keep its original checklist if it already has saved audits
+    if (!getAllAudits().some(a => a.dept === name)) existing.type = type;
+    type = existing.type;
+    delete existing.hidden;
+  } else {
+    list.push({ name, type });
+  }
+  if (!saveCustomDepts(activePlant, list)) return;
+
+  closeAddDeptDlg();
+  renderDeptOptions();
+  document.getElementById('f-dept').value = activeDept;
+  toast(`${name} added to ${plantLabel}`, 'ok');
+
+  const start = () => {
+    document.getElementById('f-dept').value = name;
+    applyDeptChange();
+    window.scrollTo(0, 0);
+  };
+  if (hasUnsavedWork()) {
+    openDlg('Start the new department?',
+      `${name} is in the list now. Your ${activeDept} audit hasn't been saved — discard it and start ${name}?`, start);
+  } else {
+    start();
+  }
+}
+
+function updateCustomDeptNote() {
+  const note   = document.getElementById('custom-dept-note');
+  const custom = activeDept ? findCustomDept(activePlant, activeDept) : null;
+  if (!custom || custom.hidden) { note.style.display = 'none'; return; }
+  const t = PLANT_DATA[activePlant].checklistTypes.find(x => x.key === custom.type);
+  document.getElementById('custom-dept-type').textContent = (t ? t.label.replace(/\s*\(.*\)$/, '') : custom.type) + ' checklist';
+  note.style.display = 'block';
+}
+
+function confirmRemoveCustomDept() {
+  const dept = activeDept;
+  if (!findCustomDept(activePlant, dept)) return;
+  openDlg('Remove department?',
+    `Remove ${dept} from the ${PLANT_DATA[activePlant].label} list? Saved audits for it stay in History. Anything unsaved on this form will be cleared.`,
+    () => removeCustomDept(dept));
+}
+
+function removeCustomDept(dept) {
+  const list = getCustomDepts(activePlant);
+  const hasAudits = getAllAudits().some(a => a.dept === dept);
+  // Keep a hidden record when audits exist so those audits still open with the right checklist
+  const next = hasAudits
+    ? list.map(d => d.name === dept ? Object.assign({}, d, { hidden: true }) : d)
+    : list.filter(d => d.name !== dept);
+  if (!saveCustomDepts(activePlant, next)) return;
+  renderDeptOptions();
+  resetAuditView();
+  toast(`${dept} removed from the list`, 'ok');
+}
+
+// Department dropdown handler — guards unsaved work and the "add a department" option
 function onDeptChange() {
+  const sel  = document.getElementById('f-dept');
+  const next = sel.value;
+  if (next === ADD_DEPT_VALUE) {
+    sel.value = activeDept;
+    openAddDeptDlg();
+    return;
+  }
+  if (next !== activeDept && hasUnsavedWork()) {
+    sel.value = activeDept; // hold the old selection until they confirm
+    openDlg('Discard unsaved audit?',
+      `Your ${activeDept} audit hasn't been saved. Discard it and switch to ${next || 'no department'}?`,
+      () => { sel.value = next; applyDeptChange(); });
+    return;
+  }
+  applyDeptChange();
+}
+
+function applyDeptChange() {
   // Switching away from a saved audit starts a brand-new one — don't inherit its old date
   const wasSaved = savedId && getAllAudits().some(a => a.id === savedId);
   discardUnsavedDraftPhotos();
@@ -2136,6 +2392,7 @@ function onDeptChange() {
 function renderSections() {
   const wrap = document.getElementById('sections-container');
   revokeAllThumbUrls();
+  updateCustomDeptNote();
 
   if (!activeDept) {
     wrap.innerHTML = '<div class="pick-dept"><div class="icon">📋</div><p>Select a department above<br>to load the audit checklist.</p></div>';
@@ -2145,8 +2402,7 @@ function renderSections() {
     return;
   }
 
-  const pd       = PLANT_DATA[activePlant];
-  const sections = pd.getSections(activeDept);
+  const sections = getPlantSections(activePlant, activeDept);
 
   wrap.innerHTML = sections.map(sec => `
     <div class="section-card ${sec.cls}" id="sc-${sec.key}">
@@ -2320,7 +2576,7 @@ function revokeAllThumbUrls() {
 
 function recalcTotals() {
   if (!activeDept) return;
-  const sections = PLANT_DATA[activePlant].getSections(activeDept);
+  const sections = getPlantSections(activePlant, activeDept);
   let grand = 0, maxTotal = 0;
 
   sections.forEach(sec => {
@@ -2361,8 +2617,7 @@ function saveAudit() {
   const dept = document.getElementById('f-dept').value;
   if (!dept) { toast('Select a department first', 'err'); return; }
 
-  const pd       = PLANT_DATA[activePlant];
-  const sections = pd.getSections(dept);
+  const sections = getPlantSections(activePlant, dept);
   let grand = 0, maxTotal = 0;
 
   const secData = sections.map(sec => {
@@ -2447,7 +2702,7 @@ function fmtTime(t) {
 
 function buildAuditSheet(ws, a) {
   const pd      = PLANT_DATA[a.plant || activePlant];
-  const isBurn  = pd.burnDepts.has(a.dept);
+  const isBurn  = isBurnDept(a.plant || activePlant, a.dept);
   const itemCnt = a.sections.reduce((n, s) => n + s.items.length, 0);
   const avg     = itemCnt > 0 ? (a.total / itemCnt).toFixed(1) : '0.0';
 
@@ -2635,8 +2890,7 @@ async function exportCurrent() {
   const dept = document.getElementById('f-dept').value;
   if (!dept) { toast('Select a department first', 'err'); return; }
 
-  const pd       = PLANT_DATA[activePlant];
-  const sections = pd.getSections(dept);
+  const sections = getPlantSections(activePlant, dept);
   let grand = 0, maxTotal = 0;
   const secData = sections.map(sec => {
     const items = sec.items.map((label, i) => {
@@ -2711,7 +2965,7 @@ async function buildMultiSheetWorkbook(audits) {
 
 // Workbook sheet order: newest month first, then the plant's department order
 function sortForExport(audits) {
-  const order = PLANT_DATA[activePlant].deptGroups.reduce((acc, g) => acc.concat(g.depts), []);
+  const order = getDeptList(activePlant);
   const idx = d => { const i = order.indexOf(d); return i < 0 ? order.length : i; };
   return audits.slice().sort((a, b) => {
     const ma = auditMonth(a), mb = auditMonth(b);
@@ -2941,6 +3195,7 @@ function loadAudit(id) {
 
   switchTab('audit');
 
+  ensureDeptOption(a.dept);
   document.getElementById('f-dept').value    = a.dept;
   document.getElementById('f-auditor').value = a.auditor || 'Chase S.';
   document.getElementById('f-date').value    = a.date    || '';
