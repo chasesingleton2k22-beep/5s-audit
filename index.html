@@ -1197,6 +1197,19 @@ body {
     <button class="btn btn-amber" style="width:100%;margin-bottom:10px" onclick="exportFullWorkbook()" id="export-full-btn">
       Export Full Workbook (All Departments)
     </button>
+    <button class="btn btn-navy" style="width:100%;margin-bottom:10px;display:none" onclick="exportForHoshin()" id="export-hoshin-btn">
+      Export for Hoshin (both plants)
+    </button>
+    <details id="hoshin-help" style="display:none;font-size:.78rem;color:var(--muted);margin:-2px 0 10px;line-height:1.45">
+      <summary style="cursor:pointer;font-weight:700">How the Hoshin export works</summary>
+      <div style="padding:6px 2px 0">
+        Makes one file for the month shown above, both plants, laid out like the "5S- PDCA" tab in the Hoshin workbook.
+        Copy each yellow block, click the cell it names on the 5S tab, and paste <b>values only</b> (Ctrl+Shift+V).
+        Blank yellow cells are departments not audited that month. The file's "How this works" tab has the full steps,
+        how each number is calculated, and the department name mapping. It doesn't change the Hoshin workbook until you paste,
+        and the Export Full Workbook button above is separate and unchanged.
+      </div>
+    </details>
     <div id="workbook-status" style="font-size:.78rem;color:var(--muted);text-align:center;margin-bottom:10px;display:none"></div>
     <div id="select-toolbar" style="display:none;justify-content:space-between;align-items:center;margin-bottom:10px">
       <span id="bulk-count-lbl" style="font-size:.78rem;font-weight:700;color:var(--muted)"></span>
@@ -1732,9 +1745,9 @@ let dashMonth           = null;      // 'YYYY-MM' the dashboard is showing; null
 let histMonth           = null;      // 'YYYY-MM' | 'all' | null (= most recent month with audits)
 
 // Bump on every deploy — "Check for Update" compares this against the live copy.
-const APP_VERSION     = '2026.09.29';
+const APP_VERSION     = '2026.10.01';
 const SCORE_GOAL      = 3.0;  // plant-wide monthly target (matches the 5S scorecard goal line)
-const OPP_THRESHOLD   = 3;    // an item scored below this counts as a 5S opportunity
+const OPP_THRESHOLD   = 2;    // an item scored below this counts as a 5S opportunity (plant standard)
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
@@ -2673,6 +2686,13 @@ function writeAudits(list) {
   }
 }
 
+function getAuditsFor(plant) {
+  try {
+    const data = JSON.parse(localStorage.getItem(PLANT_DATA[plant].storageKey) || '[]');
+    return data.map(a => ({ plant, ...a }));
+  } catch { return []; }
+}
+
 function getAllAudits() {
   const key = PLANT_DATA[activePlant].storageKey;
   try {
@@ -3003,6 +3023,315 @@ async function exportFullWorkbook() {
 }
 
 // ══════════════════════════════════════════════════════════
+// EXPORT FOR HOSHIN — laid out to match the existing Hoshin Kanri "5S- PDCA" tab
+// ══════════════════════════════════════════════════════════
+// Blocks in the exact row order of the sheet: [name on the sheet, plant, app department (null = not in the app)].
+// If a row is ever added or moved on that tab, update it here too.
+const HOSHIN_BLOCKS = [
+  { title: 'Plant 1 departments', firstRow: 53, rows: [
+    ['Machine Shop', 'p1', 'Machine Shop'], ['Saw', 'p1', 'Saw'], ['Paint', 'p1', 'Paint'],
+    ['Burn Bay 1', 'p1', 'Burn Bay 1'], ['Burn Bay 2', 'p1', 'Burn Bay 2'], ['Burn Bay 3', 'p1', 'Burn Bay 3'],
+    ['Lg. Bucket 1', 'p1', 'Large Bucket 1'], ['Lg. Bucket 2', 'p1', 'Large Bucket 2'], ['Lg. Thumb', 'p1', 'Large Thumbs'],
+    ['Cust Fab', 'p1', 'Custom Fab'], ['WL Couplers', 'p1', 'WL Couplers'], ['Bushing Inst & Weld', 'p1', 'Bushing Inst & Weld'],
+    ['Weld Bay 1', 'p1', 'Weld 1'], ['Weld Bay 2', 'p1', 'Weld 2'], ['Assembly', 'p1', 'Assembly'], ['CTL', 'p1', 'CTL'],
+  ] },
+  { title: 'Plant 2 departments', firstRow: 74, rows: [
+    ['Burn Bay 1', 'p2', 'Burn Bay 1'], ['Burn Bay 2', 'p2', 'Burn Bay 2'], ['Burn Bay 3', 'p2', 'Burn Bay 3'],
+    ['Install', 'p2', 'Install'], ['Kitting', 'p2', 'Kitting'], ['Pin On Bucket', 'p2', 'Pin On Bucket'],
+    ['QC Bucket', 'p2', 'QH Bucket'], ['Specialty Bucket', 'p2', 'Specialty Bucket'], ['Machine Shop', 'p2', 'Machine Shop'],
+    ['Saw', 'p2', 'Saw'], ['Quality (N/A)', 'p2', null], ['Sm. Thumbs', 'p2', 'Thumbs'], ['Paint', 'p2', 'Paint'],
+    ['Couplers', 'p2', 'Couplers'], ['Assembly', 'p2', 'Assembly'], ['Cobot', 'p2', 'Cobot'],
+  ] },
+  { title: 'Maintenance', firstRow: 94, rows: [['Plant 1 Maintenance', 'p1', 'Maintenance'], ['Plant 2 Maintenance', 'p2', 'Maintenance']] },
+  { title: 'Shipping',    firstRow: 101, rows: [['Plant 1 Shipping', 'p1', 'Shipping'], ['Plant 2 Shipping', 'p2', 'Shipping']] },
+];
+
+// The 5 categories on the sheet's Opportunities table (rows 28–32), in sheet order
+const HOSHIN_OPP_CATEGORIES = [
+  ['Tops of Items', /tops of shelves/i],
+  ['Along walls', /along walls/i],
+  ['Work Area free of Dirt', /work areas free of/i],
+  ['Cleaning tools', /cleaning tools/i],
+  ['Welding Screens', /weld screens/i],
+];
+
+// Short names for the Opportunities chart (checked in order — first match wins)
+const HOSHIN_ITEM_NAMES = [
+  [/tops of shelves/i, 'Tops of items'],
+  [/work areas free of/i, 'Work areas free of dirt'],
+  [/along walls/i, 'Along walls'],
+  [/cleaning tools/i, 'Cleaning tools'],
+  [/weld screens/i, 'Welding screens'],
+  [/garbage/i, 'Garbage & pallets'],
+  [/personal items and general clutter/i, 'Personal items / clutter'],
+  [/unused parts/i, 'Unused parts & tools'],
+  [/obstructing flow/i, 'Blocked flow / safety'],
+  [/scrap, paper, metal/i, 'Scrap removed'],
+  [/labeled and stored/i, 'Tools labeled & stored'],
+  [/floor markings/i, 'Floor markings & signs'],
+  [/little operator motion/i, 'Tools within reach'],
+  [/shadow boards/i, 'Shadow boards & racks'],
+  [/paint room/i, 'Paint room'],
+  [/laser control panel/i, 'Laser control panel'],
+  [/rails and tracks/i, 'Rails & tracks'],
+  [/parts organized and stacked/i, 'Parts stacked'],
+  [/hyd hose/i, 'Hyd hose station'],
+  [/stored items/i, 'Stored items & pallets'],
+  [/paint storage room/i, 'Paint storage room'],
+  [/work stations/i, 'Work stations'],
+  [/parking lot/i, 'Shipping parking lot'],
+  [/procedures are documented/i, '5S procedures posted'],
+  [/latest audit posted/i, 'Latest audit posted'],
+  [/know or where to find/i, 'Operators know standards'],
+  [/diagram posted/i, '5S diagram posted'],
+  [/fixes in process/i, 'Audit fixes in process'],
+];
+
+function hoshinItemName(label) {
+  const hit = HOSHIN_ITEM_NAMES.find(([re]) => re.test(label));
+  return hit ? hit[1] : String(label).slice(0, 40);
+}
+
+function hoshinExportMonth(view) {
+  if (view.sel && view.sel !== 'all' && view.sel.length === 7) return view.sel;
+  const m = view.months.find(k => k.length === 7);
+  return m || null;
+}
+
+// Plain average of the numbers in a list (null when there are none) — NOT rounded
+function avgRaw(list) {
+  const nums = list.filter(v => typeof v === 'number');
+  return nums.length ? nums.reduce((s, v) => s + v, 0) / nums.length : null;
+}
+function round2(v) { return v === null ? null : Math.round(v * 100) / 100; }
+
+// Everything the existing Hoshin 5S tab needs for one month, both plants
+function buildHoshinData(monthKey) {
+  const buckets = {
+    p1: latestByMonth(getAuditsFor('p1'))[monthKey] || {},
+    p2: latestByMonth(getAuditsFor('p2'))[monthKey] || {},
+  };
+  let depts = 0;
+  const cats = HOSHIN_OPP_CATEGORIES.map(() => 0);
+  const items = {}; // short item name → { p1, p2, depts[] } for the reference tab
+  const blocks = HOSHIN_BLOCKS.map(b => ({
+    title: b.title,
+    firstRow: b.firstRow,
+    rows: b.rows.map(([sheetName, plant, appDept]) => {
+      const a = appDept ? buckets[plant][appDept] : null;
+      if (!a) return { sheetName, value: null };
+      depts++;
+      a.sections.forEach(sec => sec.items.forEach(it => {
+        if (it.score === null || it.score === undefined || it.score >= OPP_THRESHOLD) return;
+        const ci = HOSHIN_OPP_CATEGORIES.findIndex(([, re]) => re.test(it.label));
+        if (ci >= 0) cats[ci]++;
+        const n = hoshinItemName(it.label);
+        const e = items[n] || (items[n] = { p1: 0, p2: 0, depts: [] });
+        e[plant]++;
+        const tag = b.title.startsWith('Plant') ? `${sheetName} (${PLANT_DATA[plant].label.replace('Plant ', 'P')})` : sheetName;
+        if (e.depts.indexOf(tag) < 0) e.depts.push(tag);
+      }));
+      return { sheetName, value: roundScore(auditAvg(a)) };
+    }),
+  }));
+  // Plant and global scores keep 2 decimals and the global is built from the UNROUNDED plant scores.
+  // The sheet shows 1 decimal either way, but averaging already-rounded numbers (3.0 and 3.1 → 3.05 → 3.1)
+  // made September read a tenth too high, so rounding happens once, at the very end.
+  const p1raw = avgRaw(blocks[0].rows.map(r => r.value));
+  const p2raw = avgRaw(blocks[1].rows.map(r => r.value));
+  return { blocks, p1: round2(p1raw), p2: round2(p2raw), global: round2(avgRaw([p1raw, p2raw])), cats, items, depts };
+}
+
+async function exportForHoshin() {
+  const monthKey = hoshinExportMonth(getHistoryView());
+  if (!monthKey) { toast('No audits to export yet', 'err'); return; }
+  const data = buildHoshinData(monthKey);
+  if (!data.depts) { toast(`No Hoshin departments audited in ${monthName(monthKey)}`, 'err'); return; }
+
+  const [y, m] = monthKey.split('-').map(Number);
+  const col = String.fromCharCode(69 + m); // Jan → F … Dec → Q, same as the sheet's month columns
+  const NAVY = 'FF0F1F3D', YELLOW = 'FFFFF2CC', GRID = 'FFD1DCE8';
+  const thin = { style: 'thin', color: { argb: GRID } };
+  const box  = { top: thin, left: thin, bottom: thin, right: thin };
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Paste into Hoshin');
+  ws.columns = [{ width: 11 }, { width: 30 }, { width: 14 }];
+  let r = 1;
+  const title = ws.getCell(r, 1);
+  title.value = `5S numbers for ${monthName(monthKey)} — Hoshin Kanri "5S- PDCA" tab`;
+  title.font = { bold: true, size: 14, color: { argb: NAVY } };
+  r++;
+  ws.getCell(r, 1).value = `Scores go in the ${MONTH_FULL[m - 1]} column (column ${col}). In each block: copy the yellow cells, click the cell shown on the 5S tab, then paste VALUES ONLY (Ctrl+Shift+V) so the sheet's formatting stays put. See the "How this works" tab.`;
+  ws.getCell(r, 1).font = { italic: true, color: { argb: 'FF5B7290' } };
+  r += 2;
+
+  let n = 0;
+  const block = (heading, target, entries, fmt, note) => {
+    n++;
+    ws.mergeCells(r, 1, r, 3);
+    const h = ws.getCell(r, 1);
+    h.value = `PASTE ${n} — ${heading}`;
+    h.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    h.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    r++;
+    const first = r + 1, last = r + entries.length;
+    ws.mergeCells(r, 1, r, 3);
+    ws.getCell(r, 1).value = `Copy A${first}:A${last}  →  on the 5S tab click ${target}  →  Ctrl+Shift+V (paste values)`;
+    ws.getCell(r, 1).font = { bold: true, color: { argb: 'FF1F5F7A' } };
+    r++;
+    entries.forEach(([value, label, cell]) => {
+      const v = ws.getCell(r, 1);
+      v.value = value;
+      v.numFmt = fmt;
+      v.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: YELLOW } };
+      v.alignment = { horizontal: 'center' };
+      v.border = box;
+      ws.getCell(r, 2).value = label;
+      ws.getCell(r, 2).border = box;
+      ws.getCell(r, 3).value = cell;
+      ws.getCell(r, 3).font = { color: { argb: 'FF5B7290' } };
+      ws.getCell(r, 3).border = box;
+      r++;
+    });
+    if (note) { ws.getCell(r, 1).value = note; ws.getCell(r, 1).font = { italic: true, size: 9, color: { argb: 'FF5B7290' } }; r++; }
+    r++;
+  };
+
+  data.blocks.forEach(b => block(
+    `${b.title} (${b.rows.length} rows)`, `${col}${b.firstRow}`,
+    b.rows.map((x, i) => [x.value, x.sheetName, `${col}${b.firstRow + i}`]), '0.0',
+    b.rows.some(x => x.value === null) ? 'Blank = not audited this month (the blank pastes over the cell too, so nothing old is left behind).' : null));
+  block('Global Score table (Plant 1 / Plant 2)', `${col}46`,
+    [[data.p1, 'Plant 1 overall', `${col}46`], [data.p2, 'Plant 2 overall', `${col}47`]], '0.00',
+    'Shown to 2 decimals so the Global Score row under these (row 48) averages exactly; the sheet still displays 1 decimal.');
+  block('Chart data — 2026 global score', `C${11 + m}`,
+    [[data.global, `${MONTH_FULL[m - 1]} global score`, `C${11 + m}`]], '0.00',
+    'This is the "2026" column next to the Global 5S score chart.');
+  block(`Opportunities — items scored below ${OPP_THRESHOLD}, both plants`, 'C28',
+    HOSHIN_OPP_CATEGORIES.map(([label], i) => [data.cats[i], label, `C${28 + i}`]), '0',
+    'Paste into this month\'s column (C) after moving last month\'s numbers to column B, same as now.');
+
+  // Reference tab: every item scored below the threshold, for writing up the PDCA
+  const ref = wb.addWorksheet(`All items below ${OPP_THRESHOLD}`);
+  ref.columns = [{ header: 'Item', width: 28 }, { header: 'Plant 1', width: 9 }, { header: 'Plant 2', width: 9 },
+                 { header: 'Total', width: 8 }, { header: 'Departments', width: 90 }];
+  ref.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  ref.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+  Object.keys(data.items)
+    .map(k => ({ k, e: data.items[k], t: data.items[k].p1 + data.items[k].p2 }))
+    .sort((a, b) => b.t - a.t || a.k.localeCompare(b.k))
+    .forEach(({ k, e, t }) => ref.addRow([k, e.p1, e.p2, t, e.depts.join(', ')]));
+  if (ref.rowCount === 1) ref.addRow([`No items scored below ${OPP_THRESHOLD} this month.`]);
+
+  buildHoshinNotesSheet(wb, { monthKey, m, col, data });
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  downloadBlob(blob, `${y}-${MONTH_FULL[m - 1]}-Hoshin-5S-Paste.xlsx`);
+  toast(`Hoshin export for ${monthName(monthKey)} downloaded`, 'ok');
+}
+
+// "How this works" tab inside every Hoshin export: steps, how each number is calculated, name mapping, limits.
+function buildHoshinNotesSheet(wb, { monthKey, m, col, data }) {
+  const NAVY = 'FF0F1F3D', GRID = 'FFD1DCE8';
+  const thin = { style: 'thin', color: { argb: GRID } };
+  const box  = { top: thin, left: thin, bottom: thin, right: thin };
+  const ws = wb.addWorksheet('How this works');
+  ws.columns = [{ width: 26 }, { width: 30 }, { width: 62 }];
+  let r = 1;
+  const wrap = { wrapText: true, vertical: 'top' };
+  const title = t => {
+    ws.getCell(r, 1).value = t;
+    ws.getCell(r, 1).font = { bold: true, size: 14, color: { argb: NAVY } };
+    r += 2;
+  };
+  const head = t => {
+    ws.mergeCells(r, 1, r, 3);
+    const c = ws.getCell(r, 1);
+    c.value = t;
+    c.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    r++;
+  };
+  const line = t => {
+    ws.mergeCells(r, 1, r, 3);
+    const c = ws.getCell(r, 1);
+    c.value = t;
+    c.alignment = wrap;
+    ws.getRow(r).height = Math.max(16, Math.ceil(t.length / 105) * 15);
+    r++;
+  };
+  const row3 = (a, b, c, bold) => {
+    [a, b, c].forEach((v, i) => {
+      const cell = ws.getCell(r, i + 1);
+      cell.value = v;
+      cell.border = box;
+      cell.alignment = wrap;
+      if (bold) cell.font = { bold: true };
+    });
+    ws.getRow(r).height = Math.max(16, Math.ceil(String(c).length / 62) * 15);
+    r++;
+  };
+  const gap = () => { r++; };
+  const mon = MONTH_FULL[m - 1];
+
+  title(`How the Hoshin export works — ${monthName(monthKey)}`);
+
+  head('WHAT THIS FILE IS');
+  line('A set of ready-to-paste blocks that match the layout of the "5S- PDCA" tab in the Hoshin Kanri workbook, row for row. It exists so the monthly 5S numbers come straight from the audits in the app instead of being retyped. It does not change, and is not linked to, the Hoshin workbook: nothing happens there until you paste.');
+  line('It always covers BOTH plants for the month chosen in History (the month shown in the filter). The Export Full Workbook button is separate and unchanged: it still makes the one-sheet-per-department audit workbook.');
+  gap();
+
+  head('STEP BY STEP');
+  line('1.  Open the Hoshin Kanri workbook and go to the "5S- PDCA" tab.');
+  line(`2.  Every paste goes in the ${mon} column, which is column ${col} on that tab (Jan = F, Feb = G ... Dec = Q). The chart-data cell and the Opportunities cells are the exceptions and are listed below.`);
+  line('3.  On the "Paste into Hoshin" tab of this file, copy the yellow cells of PASTE 1, click the target cell named above them on the 5S tab, then press Ctrl+Shift+V (paste values). Do the same for each of the other pastes.');
+  line("4.  Use PASTE VALUES, not a plain Ctrl+V. A plain paste also brings this file's formatting and would wipe the borders and colors on the 5S tab. If Ctrl+Shift+V does nothing, use Home > Paste (arrow) > Values (123).");
+  line('5.  Blank yellow cells are departments not audited this month. They paste as blanks on purpose, so nothing old is left behind.');
+  line("6.  The Opportunities table: move last month's numbers to their column first (same as the current routine), then paste the last block into this month's column.");
+  gap();
+
+  head('WHERE EACH PASTE GOES');
+  row3('Paste', 'Click this cell on the 5S tab', 'What it is', true);
+  let n = 0;
+  data.blocks.forEach(b => {
+    n++;
+    row3(`PASTE ${n}`, `${col}${b.firstRow}  (down to ${col}${b.firstRow + b.rows.length - 1})`, `${b.title}, ${b.rows.length} rows, in the sheet's exact order`);
+  });
+  row3(`PASTE ${n + 1}`, `${col}46  (and ${col}47)`, 'Global Score table: Plant 1 overall, then Plant 2 overall. Row 48 (Global Score) calculates itself.');
+  row3(`PASTE ${n + 2}`, `C${11 + m}`, `Chart data: the "2026" value for ${mon} next to the Global 5S chart.`);
+  row3(`PASTE ${n + 3}`, 'C28  (down to C32)', `Opportunities: how many items scored below ${OPP_THRESHOLD} in each of the 5 categories.`);
+  gap();
+
+  head('HOW EACH NUMBER IS CALCULATED');
+  line("Department score: the department's audit total divided by the number of items on its checklist (the same score the app's dashboard shows; an item left unscored counts as 0), rounded to 1 decimal. If a department was audited more than once in the month, the most recent audit is used.");
+  line("Plant 1 / Plant 2 overall: the average of that plant's department scores, using only the departments that were audited. Kept to 2 decimals so the sheet's own averages stay exact; the sheet displays 1 decimal.");
+  line('Global score: the average of the two plant scores, calculated from the unrounded plant values. (Averaging two already-rounded numbers, such as 3.0 and 3.1, reads a tenth too high, so rounding only happens at the very end.)');
+  line(`Opportunities: any item scored below ${OPP_THRESHOLD} (plant standard), counted once per department, both plants combined. Only the 5 Shine items on the sheet are counted in the 5 categories. Every other item scored below ${OPP_THRESHOLD} is on the "All items below ${OPP_THRESHOLD}" tab for writing up the PDCA.`);
+  gap();
+
+  head('NAME MAPPING — SHEET ROW vs APP DEPARTMENT');
+  row3('Name on the 5S tab', 'Department in the app', 'Note', true);
+  HOSHIN_BLOCKS.forEach(b => b.rows.forEach(([sheetName, plant, appDept]) => {
+    if (!appDept) { row3(sheetName, '(none)', 'Not in the app. Always blank; type it by hand if it is still scored.'); return; }
+    const shown = b.title.startsWith('Plant') ? `${sheetName}  (${PLANT_DATA[plant].label})` : sheetName;
+    row3(shown, appDept, sheetName === appDept ? '' : 'Named differently on the sheet');
+  }));
+  gap();
+
+  head('NOT COVERED — DO BY HAND');
+  line('Departments the app audits that have no row on the 5S tab (for example Weld & Fab and Continuous Improvement) are not exported.');
+  line(`The Plan/Do/Check/Act write-up table is typed by hand. Use the "All items below ${OPP_THRESHOLD}" tab to see which items and departments to write up.`);
+  line(`Other tabs do not pull from this file. 2026 Bowler (5S Score, Act row 16, ${mon} = column ${String.fromCharCode(74 + m)}) and GLOBAL SAFETY-Data (rows 31 and 32, ${mon} = column ${String.fromCharCode(65 + m)}) are typed cells. Check the cell before typing, because those tabs can change. Global score for ${mon}: ${data.global === null ? 'n/a' : data.global.toFixed(2)}.`);
+  gap();
+
+  head('AFTER PASTING, CHECK');
+  line(`Row 48 Global Score and row 69 Overall Plant Score fill in for ${mon} with no #DIV/0!. Plant 1 overall = ${data.p1 === null ? 'n/a' : data.p1.toFixed(2)}, Plant 2 overall = ${data.p2 === null ? 'n/a' : data.p2.toFixed(2)}; row 69 should land within about 0.05 of the Plant 1 value.`);
+  line('If the 5S tab ever gets a row added, removed or moved, the app needs updating: the row order lives in HOSHIN_BLOCKS in the app code.');
+}
+
+// ══════════════════════════════════════════════════════════
 // BULK SELECT (export several audits at once)
 // ══════════════════════════════════════════════════════════
 function toggleAuditSelect(id, checked) {
@@ -3130,6 +3459,7 @@ function renderHistory() {
   const filter = document.getElementById('hist-filter');
   const sel    = document.getElementById('hist-month');
   const expBtn = document.getElementById('export-full-btn');
+  const hoshinBtn = document.getElementById('export-hoshin-btn');
   status.style.display = 'none';
   status.textContent   = '';
 
@@ -3147,6 +3477,8 @@ function renderHistory() {
       </div>`;
     if (toolbar) toolbar.style.display = 'none';
     filter.style.display = 'none';
+    hoshinBtn.style.display = 'none';
+    document.getElementById('hoshin-help').style.display = 'none';
     expBtn.textContent = 'Export Full Workbook (All Departments)';
     updateBulkBar();
     return;
@@ -3160,6 +3492,10 @@ function renderHistory() {
   expBtn.textContent = view.sel === 'all'
     ? 'Export Full Workbook — All Months'
     : `Export Full Workbook — ${monthName(view.sel)}`;
+  const hoshinMonth = hoshinExportMonth(view);
+  hoshinBtn.style.display = hoshinMonth ? 'block' : 'none';
+  document.getElementById('hoshin-help').style.display = hoshinMonth ? 'block' : 'none';
+  if (hoshinMonth) hoshinBtn.textContent = `Export for Hoshin — ${monthName(hoshinMonth)} (both plants)`;
 
   if (toolbar) toolbar.style.display = 'flex';
   updateBulkBar();
