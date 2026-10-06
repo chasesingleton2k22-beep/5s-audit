@@ -1745,7 +1745,7 @@ let dashMonth           = null;      // 'YYYY-MM' the dashboard is showing; null
 let histMonth           = null;      // 'YYYY-MM' | 'all' | null (= most recent month with audits)
 
 // Bump on every deploy — "Check for Update" compares this against the live copy.
-const APP_VERSION     = '2026.10.01';
+const APP_VERSION     = '2026.10.06';
 const SCORE_GOAL      = 3.0;  // plant-wide monthly target (matches the 5S scorecard goal line)
 const OPP_THRESHOLD   = 2;    // an item scored below this counts as a 5S opportunity (plant standard)
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1759,6 +1759,7 @@ const MONTH_FULL = ['January','February','March','April','May','June','July','Au
   applyPlantUI();
   renderDashboard();
   gcOrphanPhotos();
+  loadPastAuditSeed();
 })();
 
 // ══════════════════════════════════════════════════════════
@@ -1777,7 +1778,8 @@ function setFormDateTimeToNow() {
 
 function currentMonthKey() { return localDateStr(new Date()).slice(0, 7); }
 
-function auditMonth(a) { return (a.date || (a.savedAt || '').slice(0, 10)).slice(0, 7); }
+// `period` is set only on imported past audits: the round they belong to (a June round done on Jul 6 is still June)
+function auditMonth(a) { return a.period || (a.date || (a.savedAt || '').slice(0, 10)).slice(0, 7); }
 
 function shiftMonth(key, delta) {
   let [y, m] = key.split('-').map(Number);
@@ -2661,6 +2663,10 @@ function saveAudit() {
 
   const all = getAllAudits();
   const idx = all.findIndex(a => a.id === id);
+  if (idx >= 0 && all[idx].period && all[idx].date === audit.date) {
+    audit.period   = all[idx].period;
+    audit.imported = all[idx].imported;
+  }
   if (idx >= 0) all[idx] = audit; else all.unshift(audit);
   if (!writeAudits(all)) return;
 
@@ -3332,6 +3338,48 @@ function buildHoshinNotesSheet(wb, { monthKey, m, col, data }) {
 }
 
 // ══════════════════════════════════════════════════════════
+// PAST AUDITS — one-time load of the earlier Plant 2 rounds (Mar–Jul 2026) from past-audits-p2.json,
+// so the dashboard has a longer history. Runs once per device (flag below); never overwrites a month a
+// department already has, and a deleted audit does not come back.
+// ══════════════════════════════════════════════════════════
+async function loadPastAuditSeed() {
+  const FLAG = 'tag5s-past-seed-p2-v1';
+  try {
+    if (localStorage.getItem(FLAG)) return;
+    const res = await fetch('./past-audits-p2.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const seed = await res.json();
+    const key = PLANT_DATA.p2.storageKey;
+    const raw = JSON.parse(localStorage.getItem(key) || '[]');
+    const have = new Set(raw.map(a => `${a.dept}|${auditMonth(a)}`));
+    const fresh = [];
+    seed.forEach(s => {
+      if (have.has(`${s.dept}|${s.period}`)) return;
+      const appSecs = getPlantSections('p2', s.dept);
+      let total = 0, max = 0;
+      const sections = s.sections.map((sec, si) => {
+        const items = sec.items.map(([label, score, remarks]) => {
+          if (score !== null) total += score;
+          max += 5;
+          return { label, score, remarks: remarks || '', photos: [] };
+        });
+        const app = appSecs[si];
+        const same = app && app.items.length === items.length; // keeps the audit openable in View / Edit
+        return { key: same ? app.key : `imp${si}`, label: same ? app.label : sec.label, items };
+      });
+      fresh.push({
+        id: `past-p2-${s.period}-${s.dept}`.replace(/\s+/g, '_'),
+        plant: 'p2', dept: s.dept, auditor: s.auditor, date: s.date, time: s.time,
+        period: s.period, imported: true, sections, total, max, savedAt: new Date().toISOString(),
+      });
+    });
+    if (fresh.length) localStorage.setItem(key, JSON.stringify(raw.concat(fresh)));
+    localStorage.setItem(FLAG, '1');
+    if (fresh.length) { renderDashboard(); if (typeof renderHistory === 'function') renderHistory(); }
+  } catch (e) { /* offline or storage full: try again next launch */ }
+}
+
+// ══════════════════════════════════════════════════════════
 // BULK SELECT (export several audits at once)
 // ══════════════════════════════════════════════════════════
 function toggleAuditSelect(id, checked) {
@@ -3545,17 +3593,19 @@ function loadAudit(id) {
   requestAnimationFrame(() => {
     a.sections.forEach(sec => {
       sec.items.forEach((item, i) => {
-        if (item.score !== null && item.score !== undefined) {
-          setScore(sec.key, i, item.score);
-        }
-        if (item.remarks) {
-          const el = document.getElementById(`rm-${sec.key}-${i}`);
-          if (el) { el.value = item.remarks; updateRemarks(sec.key, i, item.remarks); }
-        }
-        if (item.photos && item.photos.length) {
-          ensureCell(`${sec.key}-${i}`).photos = item.photos.slice();
-          renderPhotoThumbs(sec.key, i);
-        }
+        try {  // an imported audit from an older checklist may not line up with this section: skip it, keep going
+          if (item.score !== null && item.score !== undefined) {
+            setScore(sec.key, i, item.score);
+          }
+          if (item.remarks) {
+            const el = document.getElementById(`rm-${sec.key}-${i}`);
+            if (el) { el.value = item.remarks; updateRemarks(sec.key, i, item.remarks); }
+          }
+          if (item.photos && item.photos.length) {
+            ensureCell(`${sec.key}-${i}`).photos = item.photos.slice();
+            renderPhotoThumbs(sec.key, i);
+          }
+        } catch (e) { /* no matching row on screen */ }
       });
     });
     document.getElementById('export-row').style.display    = 'flex';
