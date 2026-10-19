@@ -511,6 +511,14 @@ body {
 .c4 { background: #16a34a; }
 .c5 { background: #065f46; }
 .legend-text strong { display: block; font-size: .75rem; }
+.legend-earned {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin: 0 12px 12px; padding: 10px 12px;
+  border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; border-radius: 8px;
+  background: #f0fdf4; font-size: .78rem; line-height: 1.4; color: var(--text);
+}
+.legend-earned strong { display: block; font-size: .78rem; color: #166534; margin-bottom: 2px; }
+.legend-earned p { margin: 2px 0 0; }
 
 /* ── FORM FIELDS ─────────────────────────────────── */
 .field-pad { padding: 12px; }
@@ -1114,6 +1122,14 @@ body {
         <div class="legend-item"><span class="score-chip c4">4</span><span class="legend-text"><strong>Good</strong>Well organized, minor gaps.</span></div>
         <div class="legend-item"><span class="score-chip c5">5</span><span class="legend-text"><strong>Excellent</strong>Full 5S, neat, standardized.</span></div>
       </div>
+      <div class="legend-earned">
+        <span class="score-chip c4">4</span>
+        <div>
+          <strong>How a 3 becomes a 4</strong>
+          <p><b>Sort, Set in Place, Shine:</b> an item scored 3 this month that was 3 or better last month becomes a 4.</p>
+          <p><b>Standardize &amp; Sustain:</b> once <b>all</b> Sort, Set in Place and Shine items are 3 or better two months in a row, any Standardize or Sustain item scored 3 also becomes a 4. An item scored below 3 stays as scored.</p>
+        </div>
+      </div>
     </div>
 
     <!-- Audit Header -->
@@ -1333,9 +1349,9 @@ const P2_SHINE_BURN = [
 const P2_STANDARDIZE = [
   '5S procedures are documented, posted & in good condition in each work center',
   'Latest audit posted and reviewed',
+  'Operators know or where to find 5S standards',
 ];
 const P2_SUSTAIN = [
-  'Operators know or where to find 5S standards',
   'Last audit is posted and fixes in process',
 ];
 const P2_WELD_DEPTS = new Set(['Couplers','Thumbs','QH Bucket','Pin On Bucket','Specialty Bucket','Cobot']);
@@ -1433,10 +1449,10 @@ const P1_SHINE_SHIPPING = [
 const P1_STANDARDIZE = [
   '5S procedures are documented, posted & in good condition in each work center',
   'Latest audit posted and reviewed',
-];
-const P1_SUS_DEFAULT  = ['Operators know or where to find 5S standards'];
-const P1_SUS_WELD_FAB = [
   'Operators know or where to find 5S standards',
+];
+const P1_SUS_DEFAULT  = ['Last audit is posted and fixes in process'];
+const P1_SUS_WELD_FAB = [
   '5S Diagram posted in work areas',
   'Last audit is posted and fixes in process',
 ];
@@ -1745,7 +1761,7 @@ let dashMonth           = null;      // 'YYYY-MM' the dashboard is showing; null
 let histMonth           = null;      // 'YYYY-MM' | 'all' | null (= most recent month with audits)
 
 // Bump on every deploy — "Check for Update" compares this against the live copy.
-const APP_VERSION     = '2026.10.08';
+const APP_VERSION     = '2026.10.19';
 const SCORE_GOAL      = 3.0;  // plant-wide monthly target (matches the 5S scorecard goal line)
 const OPP_THRESHOLD   = 3;    // an item scored below this counts as a 5S opportunity (plant standard)
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -2726,7 +2742,8 @@ function fmtTime(t) {
   return `${h12}:${m} ${ampm}`;
 }
 
-function buildAuditSheet(ws, a) {
+// opts.blank: an empty form for printing (no auditor, date, time, total or overall score)
+function buildAuditSheet(ws, a, opts = {}) {
   const pd      = PLANT_DATA[a.plant || activePlant];
   const isBurn  = isBurnDept(a.plant || activePlant, a.dept);
   const itemCnt = a.sections.reduce((n, s) => n + s.items.length, 0);
@@ -2774,12 +2791,12 @@ function buildAuditSheet(ws, a) {
   // Auditor / Date / Time
   bc(ws.getCell(`A${r}`)).value = 'Auditor:';
   ws.mergeCells(`B${r}:D${r}`);
-  bc(ws.getCell(`B${r}`)).value = a.auditor;
+  bc(ws.getCell(`B${r}`)).value = opts.blank ? null : a.auditor;
   bc(ws.getCell(`E${r}`));
   bc(ws.getCell(`F${r}`)).value = 'Date:';
-  bc(ws.getCell(`G${r}`)).value = fmtDate(a.date);
+  bc(ws.getCell(`G${r}`)).value = opts.blank ? null : fmtDate(a.date);
   bc(ws.getCell(`H${r}`)).value = 'Time:';
-  bc(ws.getCell(`I${r}`)).value = fmtTime(a.time);
+  bc(ws.getCell(`I${r}`)).value = opts.blank ? null : fmtTime(a.time);
   ws.getRow(r).height = 15; r++;
 
   // Sections
@@ -2831,7 +2848,7 @@ function buildAuditSheet(ws, a) {
   td.fill  = { type: 'pattern', pattern: 'solid', fgColor: GOLD };
   td.alignment = { horizontal: 'right' };
   const te = bc(ws.getCell(`E${r}`));
-  te.value = a.total; te.alignment = { horizontal: 'center' };
+  te.value = opts.blank ? null : a.total; te.alignment = { horizontal: 'center' };
   bc(ws.getCell(`F${r}`));
   ws.getRow(r).height = 15; r++;
 
@@ -2844,7 +2861,7 @@ function buildAuditSheet(ws, a) {
   od.fill  = { type: 'pattern', pattern: 'solid', fgColor: GOLD };
   od.alignment = { horizontal: 'right' };
   const oe = bc(ws.getCell(`E${r}`));
-  oe.value = parseFloat(avg); oe.alignment = { horizontal: 'center' };
+  oe.value = opts.blank ? null : parseFloat(avg); oe.alignment = { horizontal: 'center' };
   bc(ws.getCell(`F${r}`));
   ws.getRow(r).height = 15; r++;
 
@@ -2860,12 +2877,21 @@ function buildAuditSheet(ws, a) {
     [2, 'Fair',               'Minimal 5S efforts. Some attempt at organization, but inconsistent or ineffective.'],
     [3, 'Meets Expectations', '5S elements in place. Area is organized and clean, but not fully standardized.'],
     [4, 'Good',               'Area is well-organized, clean, and mostly standardized. Some minor improvements needed.'],
+    ['', '',                  'Sort, Set in Place, Shine: an item scored 3 this month that was 3 or better last month becomes a 4.'],
+    ['', '',                  'Standardize & Sustain: once ALL Sort, Set in Place and Shine items are 3 or better two months in a row,'],
+    ['', '',                  'any Standardize or Sustain item scored 3 also becomes a 4. (An item scored below 3 stays as scored.)'],
     [5, 'Excellent',          'Full 5S implementation. Area is neat, clean, standardized, and practices are sustained.'],
   ].forEach(([num, lbl, desc]) => {
-    bc(ws.getCell(`A${r}`)).value = num;
-    bc(ws.getCell(`B${r}`)).value = lbl;
-    bc(ws.getCell(`C${r}`)).value = desc;
-    ws.getRow(r).height = 15; r++;
+    bc(ws.getCell(`A${r}`)).value = num === '' ? null : num;
+    const lb = bc(ws.getCell(`B${r}`));
+    lb.value = lbl || null;
+    lb.alignment = { shrinkToFit: true };  // "Meets Expectations" is wider than the column
+    ws.mergeCells(`C${r}:I${r}`);
+    const d = bc(ws.getCell(`C${r}`));
+    d.value = desc;
+    if (num === '') d.font = { italic: true, color: { argb: 'FF166534' } };
+    ws.getRow(r).height = 15;
+    r++;
   });
 }
 
@@ -3564,6 +3590,25 @@ function renderHistory() {
   wrap.innerHTML = html;
 }
 
+// Finds where a saved item lives on today's checklist: by its wording first (items can move between
+// sections), then by the same section + position. Returns [sectionKey, index] or null.
+function normLabel(t) { return String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+function itemLocator(sections) {
+  const byLabel = {};
+  sections.forEach(sec => sec.items.forEach((label, i) => { byLabel[normLabel(label)] = [sec.key, i]; }));
+  const taken = new Set();
+  return (label, key, i) => {
+    let at = byLabel[normLabel(label)];
+    if (!at) {
+      const sec = sections.find(x => x.key === key);
+      at = sec && i < sec.items.length ? [key, i] : null;
+    }
+    if (!at || taken.has(at.join('-'))) return null;
+    taken.add(at.join('-'));
+    return at;
+  };
+}
+
 function loadAudit(id) {
   const a = getAllAudits().find(x => x.id === id);
   if (!a) return;
@@ -3591,19 +3636,23 @@ function loadAudit(id) {
   renderSections();
 
   requestAnimationFrame(() => {
+    const where = itemLocator(getPlantSections(activePlant, a.dept));
     a.sections.forEach(sec => {
       sec.items.forEach((item, i) => {
-        try {  // an imported audit from an older checklist may not line up with this section: skip it, keep going
+        const at = where(item.label, sec.key, i);
+        if (!at) return;
+        const [key, idx] = at;
+        try {  // an imported audit from an older checklist may not line up: skip that line, keep going
           if (item.score !== null && item.score !== undefined) {
-            setScore(sec.key, i, item.score);
+            setScore(key, idx, item.score);
           }
           if (item.remarks) {
-            const el = document.getElementById(`rm-${sec.key}-${i}`);
-            if (el) { el.value = item.remarks; updateRemarks(sec.key, i, item.remarks); }
+            const el = document.getElementById(`rm-${key}-${idx}`);
+            if (el) { el.value = item.remarks; updateRemarks(key, idx, item.remarks); }
           }
           if (item.photos && item.photos.length) {
-            ensureCell(`${sec.key}-${i}`).photos = item.photos.slice();
-            renderPhotoThumbs(sec.key, i);
+            ensureCell(`${key}-${idx}`).photos = item.photos.slice();
+            renderPhotoThumbs(key, idx);
           }
         } catch (e) { /* no matching row on screen */ }
       });
