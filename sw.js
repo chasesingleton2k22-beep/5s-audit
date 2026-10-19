@@ -1,4 +1,4 @@
-const CACHE = 'tag-5s-v13';
+const CACHE = 'tag-5s-v14';
 const ASSETS = [
   './index.html',
   './icon.svg',

@@ -669,6 +669,25 @@ body {
   touch-action: manipulation;
 }
 .score-btn:active { transform: scale(.93); }
+/* Two-month rule: the tapped 3 stays faintly ringed, the 4 pops in green, a pill explains why */
+.score-btn.tapped-3 { border-color: #2563eb; border-style: dashed; color: #2563eb; background: #eff6ff; }
+.score-btn.bumped { animation: bumpPop .5s cubic-bezier(.2, 1.5, .4, 1); box-shadow: 0 0 0 3px rgba(22, 163, 74, .22); }
+@keyframes bumpPop { 0% { transform: scale(.82); } 55% { transform: scale(1.14); } 100% { transform: scale(1); } }
+.bump-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 8px 0 6px; padding: 4px 11px 4px 8px;
+  border-radius: 999px; border: 1px solid #bbf7d0; background: #f0fdf4;
+  color: #166534; font-size: .74rem; font-weight: 700; line-height: 1.3;
+  animation: pillIn .35s ease-out;
+}
+.bump-pill[hidden] { display: none; }
+.bump-pill .bp-arrow {
+  display: inline-grid; place-items: center; width: 18px; height: 18px;
+  border-radius: 50%; background: #16a34a; color: #fff; font-size: .7rem;
+}
+.bump-pill .bp-rule { font-weight: 600; color: #15803d; opacity: .85; }
+@keyframes pillIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .score-btn.bumped, .bump-pill { animation: none; } }
 .score-btn.sel-0 { background: #6b0f0f; border-color: #6b0f0f; color: #fff; }
 .score-btn.sel-1 { background: #b91c1c; border-color: #b91c1c; color: #fff; }
 .score-btn.sel-2 { background: #d97706; border-color: #d97706; color: #fff; }
@@ -1760,7 +1779,7 @@ let dashMonth           = null;      // 'YYYY-MM' the dashboard is showing; null
 let histMonth           = null;      // 'YYYY-MM' | 'all' | null (= most recent month with audits)
 
 // Bump on every deploy — "Check for Update" compares this against the live copy.
-const APP_VERSION     = '2026.10.19b';
+const APP_VERSION     = '2026.10.19c';
 const SCORE_GOAL      = 3.0;  // plant-wide monthly target (matches the 5S scorecard goal line)
 const OPP_THRESHOLD   = 3;    // an item scored below this counts as a 5S opportunity (plant standard)
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1785,6 +1804,7 @@ const MONTH_FULL = ['January','February','March','April','May','June','July','Au
 })();
 
 (function init() {
+  document.getElementById('f-date').addEventListener('change', () => reapplyTwoMonthRule());
   mergeWeldDepts();
   setFormDateTimeToNow();
   applyPlantUI();
@@ -2465,6 +2485,7 @@ function renderSections() {
               <button class="score-btn" onclick="setScore('${sec.key}',${i},${n})">${n}</button>
             `).join('')}
           </div>
+          <div class="bump-pill" id="bp-${sec.key}-${i}" hidden></div>
           <div class="note-lbl">Note (optional)</div>
           <input type="text" class="note-input" id="rm-${sec.key}-${i}"
             placeholder="e.g. missing label on station 3"
@@ -2523,15 +2544,92 @@ function ensureCell(key) {
   return scores[key];
 }
 
-function setScore(sec, idx, val) {
-  const key = `${sec}-${idx}`;
-  ensureCell(key).score = val;
-
-  const row = document.getElementById(`sr-${sec}-${idx}`);
-  row.querySelectorAll('.score-btn').forEach((btn, i) => {
-    btn.className = 'score-btn' + (i === val ? ` sel-${val}` : '');
-  });
+// raw  = what the auditor tapped; score = what counts (after the two-month rule)
+function setScore(sec, idx, val, animate = true) {
+  const key  = `${sec}-${idx}`;
+  const cell = ensureCell(key);
+  const bump = twoMonthBump(sec, idx, val);
+  cell.raw   = val;
+  cell.score = bump ? 4 : val;
+  cell.bump  = bump ? bump.note : null;
+  cell.paintToken = (cell.paintToken || 0) + 1;
+  paintScore(sec, idx, cell, animate && !!bump);
   recalcTotals();
+}
+
+function paintScore(sec, idx, cell, animate) {
+  const row  = document.getElementById(`sr-${sec}-${idx}`);
+  const pill = document.getElementById(`bp-${sec}-${idx}`);
+  if (!row) return;
+  const btns = row.querySelectorAll('.score-btn');
+  const show = (val, extra) => btns.forEach((btn, i) => {
+    btn.className = 'score-btn' + (i === val ? ` sel-${val}` : '') + (extra && extra[i] ? ' ' + extra[i] : '');
+  });
+  if (!cell.bump) {
+    show(cell.score);
+    if (pill) { pill.hidden = true; pill.innerHTML = ''; }
+    return;
+  }
+  const finish = () => {
+    show(4, { 3: 'tapped-3', 4: animate ? 'bumped' : '' });
+    if (pill) {
+      pill.innerHTML = `<span class="bp-arrow">↑</span>4 · ${esc(cell.bump)} <span class="bp-rule">· two-month rule</span>`;
+      pill.hidden = false;
+    }
+  };
+  if (!animate) { finish(); return; }
+  // Show the tapped 3 for a beat, then step up to the green 4
+  show(3);
+  if (pill) pill.hidden = true;
+  const token = cell.paintToken;
+  setTimeout(() => { if (cell.paintToken === token) finish(); }, 380);
+}
+
+// ══════════════════════════════════════════════════════════
+// TWO-MONTH RULE — Sort, Set in Place, Shine: an item scored 3 this month that was
+// 3 or better on last month's audit of the same department becomes a 4.
+// Starts with the October 2026 audits (compared with September).
+// ══════════════════════════════════════════════════════════
+const TWO_MONTH_RULE_START = '2026-10';
+const TWO_MONTH_SECTIONS   = new Set(['sort', 'set', 'shine']);
+
+// Last month's audit of the department on the form, as { byLabel: {label → tapped score}, prev, month } or null
+function twoMonthContext() {
+  const date = document.getElementById('f-date').value;
+  if (!activeDept || !date) return null;
+  const month = date.slice(0, 7);
+  if (month < TWO_MONTH_RULE_START) return null;
+  const prev = shiftMonth(month, -1);
+  const bucket = latestByMonth(getAllAudits().filter(a => a.id !== savedId))[prev] || {};
+  const last = bucket[activeDept];
+  if (!last) return null;
+  const byLabel = {};
+  last.sections.forEach(sec => sec.items.forEach(it => {
+    const v = it.raw !== undefined && it.raw !== null ? it.raw : it.score;
+    if (v !== null && v !== undefined) byLabel[normLabel(it.label)] = v;
+  }));
+  return { byLabel, prev, month };
+}
+
+function twoMonthBump(sec, idx, val) {
+  if (val !== 3 || !TWO_MONTH_SECTIONS.has(sec)) return null;
+  const ctx = twoMonthContext();
+  if (!ctx) return null;
+  const s = getPlantSections(activePlant, activeDept).find(x => x.key === sec);
+  const label = s && s.items[idx];
+  const before = label === undefined ? undefined : ctx.byLabel[normLabel(label)];
+  if (before === undefined || before < 3) return null;
+  return { note: `${before} in ${monthAbbr(ctx.prev)} + 3 in ${monthAbbr(ctx.month)}` };
+}
+
+// Date changed (different month = different "last month"): re-check every scored item, no animation
+function reapplyTwoMonthRule() {
+  Object.keys(scores).forEach(key => {
+    const cell = scores[key];
+    const m = key.match(/^(\w+)-(\d+)$/);
+    if (!m || cell.raw === undefined || cell.raw === null) return;
+    setScore(m[1], Number(m[2]), cell.raw, false);
+  });
 }
 
 function updateRemarks(sec, idx, val) {
@@ -2671,7 +2769,9 @@ function saveAudit() {
       const s = scores[`${sec.key}-${i}`] || { score: null, remarks: '', photos: [] };
       if (s.score !== null) grand += s.score;
       maxTotal += 5;
-      return { label, score: s.score, remarks: s.remarks, photos: s.photos || [] };
+      const it = { label, score: s.score, raw: s.raw !== undefined ? s.raw : s.score, remarks: s.remarks, photos: s.photos || [] };
+      if (s.bump) it.bump = s.bump;
+      return it;
     });
     return { key: sec.key, label: sec.label, items };
   });
@@ -2840,7 +2940,8 @@ function buildAuditSheet(ws, a, opts = {}) {
       const ie = bc(ws.getCell(`E${r}`));
       ie.value     = (item.score !== null && item.score !== undefined) ? item.score : null;
       ie.alignment = { horizontal: 'center' };
-      bc(ws.getCell(`F${r}`)).value = item.remarks || null;
+      const why = item.bump ? `Scored 3 → 4 (two-month rule: ${item.bump})` : '';
+      bc(ws.getCell(`F${r}`)).value = [item.remarks, why].filter(Boolean).join(' · ') || null;
       ws.getRow(r).height = 15; r++;
     });
 
@@ -2964,7 +3065,9 @@ async function exportCurrent() {
       const s = scores[`${sec.key}-${i}`] || { score: null, remarks: '', photos: [] };
       if (s.score !== null) grand += s.score;
       maxTotal += 5;
-      return { label, score: s.score, remarks: s.remarks, photos: s.photos || [] };
+      const it = { label, score: s.score, raw: s.raw !== undefined ? s.raw : s.score, remarks: s.remarks, photos: s.photos || [] };
+      if (s.bump) it.bump = s.bump;
+      return it;
     });
     return { key: sec.key, label: sec.label, items };
   });
@@ -3671,8 +3774,9 @@ function loadAudit(id) {
         if (!at) return;
         const [key, idx] = at;
         try {  // an imported audit from an older checklist may not line up: skip that line, keep going
-          if (item.score !== null && item.score !== undefined) {
-            setScore(key, idx, item.score);
+          const tapped = item.raw !== undefined && item.raw !== null ? item.raw : item.score;
+          if (tapped !== null && tapped !== undefined) {
+            setScore(key, idx, tapped, false);
           }
           if (item.remarks) {
             const el = document.getElementById(`rm-${key}-${idx}`);
