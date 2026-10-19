@@ -1452,11 +1452,10 @@ const P1_STANDARDIZE = [
   'Operators know or where to find 5S standards',
 ];
 const P1_SUS_DEFAULT  = ['Last audit is posted and fixes in process'];
-const P1_SUS_WELD_FAB = [
-  '5S Diagram posted in work areas',
-  'Last audit is posted and fixes in process',
-];
-const P1_WELD_DEPTS    = new Set(['Weld & Fab','Large Bucket 1','Large Bucket 2','Large Thumbs','Custom Fab','CTL','WL Couplers','Bushing Inst & Weld','Weld 1','Weld 2']);
+// Column widths for every audit form (both plants): wide enough that nothing is cut off when printed
+const FORM_COL_WIDTHS = [{width:9.5},{width:18},{width:8},{width:43},{width:12},{width:8},{width:10},{width:8},{width:30}];
+
+const P1_WELD_DEPTS    = new Set(['Large Bucket 1','Large Bucket 2','Large Thumbs','Custom Fab','CTL','WL Couplers','Bushing Inst & Weld','Weld']);
 const P1_BURN_DEPTS    = new Set(['Burn Bay 1','Burn Bay 2','Burn Bay 3']);
 const P1_CI_ASSEMBLY   = new Set(['Continuous Improvement','Assembly']);
 const P1_MACHINE_DEPTS = new Set(['Machine Shop','Saw']);
@@ -1472,7 +1471,7 @@ function p1GetShine(dept) {
   return P1_SHINE_WELD;
 }
 function p1GetSustain(dept) {
-  return dept === 'Weld & Fab' ? P1_SUS_WELD_FAB : P1_SUS_DEFAULT;
+  return P1_SUS_DEFAULT;
 }
 function p1Sections(shine, sustain) {
   return [
@@ -1497,7 +1496,7 @@ const PLANT_DATA = {
     label:       'Plant 2',
     storageKey:  'tag5s',
     exportSuffix:'P2',
-    colWidths:   [{width:7.14},{width:13.29},{width:8},{width:43.14},{width:5},{width:8},{width:10},{width:8},{width:29}],
+    colWidths:   FORM_COL_WIDTHS,
     burnDepts:   P2_BURN_DEPTS,
     deptGroups: [
       { label:'Standard', depts:['Shipping','Assembly','Maintenance','Saw','Press and Strip Tables','Continuous Improvement','Machine Shop','Install','Kitting'] },
@@ -1518,17 +1517,17 @@ const PLANT_DATA = {
     label:       'Plant 1',
     storageKey:  'tag5s-p1',
     exportSuffix:'P1',
-    colWidths:   [{width:6.29},{width:13.29},{width:8.43},{width:43.14},{width:5},{width:8.43},{width:10},{width:8.43},{width:30.14}],
+    colWidths:   FORM_COL_WIDTHS,
     burnDepts:   P1_BURN_DEPTS,
     deptGroups: [
-      { label:'Weld / Fabrication', depts:['Weld & Fab','Large Bucket 1','Large Bucket 2','Large Thumbs','Custom Fab','CTL','WL Couplers','Bushing Inst & Weld','Weld 1','Weld 2'] },
+      { label:'Weld / Fabrication', depts:['Large Bucket 1','Large Bucket 2','Large Thumbs','Custom Fab','CTL','WL Couplers','Bushing Inst & Weld','Weld'] },
       { label:'Burn Bay', depts:['Burn Bay 1','Burn Bay 2','Burn Bay 3'] },
       { label:'Standard', depts:['Continuous Improvement','Assembly','Machine Shop','Saw','Maintenance','Shipping'] },
       { label:'Paint',    depts:['Paint'] },
     ],
     getSections: p1GetSections,
     checklistTypes: [
-      { key:'weld',        label:'Weld / Fabrication (like Weld 1, CTL)' },
+      { key:'weld',        label:'Weld / Fabrication (like Weld, CTL)' },
       { key:'machine',     label:'Machine / Saw (like Machine Shop)' },
       { key:'ci',          label:'Assembly / CI (like Assembly)' },
       { key:'maintenance', label:'Maintenance' },
@@ -1761,7 +1760,7 @@ let dashMonth           = null;      // 'YYYY-MM' the dashboard is showing; null
 let histMonth           = null;      // 'YYYY-MM' | 'all' | null (= most recent month with audits)
 
 // Bump on every deploy — "Check for Update" compares this against the live copy.
-const APP_VERSION     = '2026.10.19';
+const APP_VERSION     = '2026.10.19b';
 const SCORE_GOAL      = 3.0;  // plant-wide monthly target (matches the 5S scorecard goal line)
 const OPP_THRESHOLD   = 3;    // an item scored below this counts as a 5S opportunity (plant standard)
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1770,7 +1769,23 @@ const MONTH_FULL = ['January','February','March','April','May','June','July','Au
 // ══════════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════════
+// Without a sheet view (and with ExcelJS's x14ac:dyDescent="55"), Excel draws every row about two-thirds of
+// its real height, so text on exported forms looks squished/clipped. Give every worksheet the app creates a
+// normal sheet view and a zero descent.
+(function fixExcelRowHeights() {
+  if (!window.ExcelJS || ExcelJS.Workbook.prototype.__rowFix) return;
+  const add = ExcelJS.Workbook.prototype.addWorksheet;
+  ExcelJS.Workbook.prototype.addWorksheet = function (name, opts) {
+    const ws = add.call(this, name, opts);
+    ws.properties.dyDescent = 0;
+    if (!ws.views || !ws.views.length) ws.views = [{ state: 'normal', zoomScale: 100 }];
+    return ws;
+  };
+  ExcelJS.Workbook.prototype.__rowFix = true;
+})();
+
 (function init() {
+  mergeWeldDepts();
   setFormDateTimeToNow();
   applyPlantUI();
   renderDashboard();
@@ -2749,7 +2764,7 @@ function buildAuditSheet(ws, a, opts = {}) {
   const itemCnt = a.sections.reduce((n, s) => n + s.items.length, 0);
   const avg     = itemCnt > 0 ? (a.total / itemCnt).toFixed(1) : '0.0';
 
-  ws.columns = pd.colWidths;
+  pd.colWidths.forEach((c, i) => { ws.getColumn(i + 1).width = c.width; });  // set one by one: ws.columns could drop column A
 
   ws.pageSetup.paperSize   = 1;
   ws.pageSetup.orientation = 'landscape';
@@ -3065,7 +3080,7 @@ const HOSHIN_BLOCKS = [
     ['Burn Bay 1', 'p1', 'Burn Bay 1'], ['Burn Bay 2', 'p1', 'Burn Bay 2'], ['Burn Bay 3', 'p1', 'Burn Bay 3'],
     ['Lg. Bucket 1', 'p1', 'Large Bucket 1'], ['Lg. Bucket 2', 'p1', 'Large Bucket 2'], ['Lg. Thumb', 'p1', 'Large Thumbs'],
     ['Cust Fab', 'p1', 'Custom Fab'], ['WL Couplers', 'p1', 'WL Couplers'], ['Bushing Inst & Weld', 'p1', 'Bushing Inst & Weld'],
-    ['Weld Bay 1', 'p1', 'Weld 1'], ['Weld Bay 2', 'p1', 'Weld 2'], ['Assembly', 'p1', 'Assembly'], ['CTL', 'p1', 'CTL'],
+    ['Weld Bay 1', 'p1', 'Weld'], ['Weld Bay 2', 'p1', null], ['Assembly', 'p1', 'Assembly'], ['CTL', 'p1', 'CTL'],
   ] },
   { title: 'Plant 2 departments', firstRow: 74, rows: [
     ['Burn Bay 1', 'p2', 'Burn Bay 1'], ['Burn Bay 2', 'p2', 'Burn Bay 2'], ['Burn Bay 3', 'p2', 'Burn Bay 3'],
@@ -3353,7 +3368,7 @@ function buildHoshinNotesSheet(wb, { monthKey, m, col, data }) {
   gap();
 
   head('NOT COVERED — DO BY HAND');
-  line('Departments the app audits that have no row on the 5S tab (for example Weld & Fab and Continuous Improvement) are not exported.');
+  line('Departments the app audits that have no row on the 5S tab (for example Continuous Improvement) are not exported.');
   line(`The Plan/Do/Check/Act write-up table is typed by hand. Use the "All items below ${OPP_THRESHOLD}" tab to see which items and departments to write up.`);
   line(`Other tabs do not pull from this file. 2026 Bowler (5S Score, Act row 16, ${mon} = column ${String.fromCharCode(74 + m)}) and GLOBAL SAFETY-Data (rows 31 and 32, ${mon} = column ${String.fromCharCode(65 + m)}) are typed cells. Check the cell before typing, because those tabs can change. Global score for ${mon}: ${data.global === null ? 'n/a' : data.global.toFixed(2)}.`);
   gap();
@@ -3368,6 +3383,19 @@ function buildHoshinNotesSheet(wb, { monthKey, m, col, data }) {
 // so the dashboard has a longer history. Runs once per device (flag below); never overwrites a month a
 // department already has, and a deleted audit does not come back.
 // ══════════════════════════════════════════════════════════
+function mergeWeldDepts() {
+  const FLAG = 'tag5s-p1-weld-merge-v1';
+  try {
+    if (localStorage.getItem(FLAG)) return;
+    const key = 'tag5s-p1';
+    const list = JSON.parse(localStorage.getItem(key) || '[]');
+    let n = 0;
+    list.forEach(a => { if (a.dept === 'Weld 1' || a.dept === 'Weld 2') { a.dept = 'Weld'; n++; } });
+    if (n) localStorage.setItem(key, JSON.stringify(list));
+    localStorage.setItem(FLAG, '1');
+  } catch (e) { /* storage unavailable: try again next launch */ }
+}
+
 async function loadPastAuditSeed() {
   const FLAG = 'tag5s-past-seed-p2-v1';
   try {
