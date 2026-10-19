@@ -1779,7 +1779,7 @@ let dashMonth           = null;      // 'YYYY-MM' the dashboard is showing; null
 let histMonth           = null;      // 'YYYY-MM' | 'all' | null (= most recent month with audits)
 
 // Bump on every deploy — "Check for Update" compares this against the live copy.
-const APP_VERSION     = '2026.10.19c';
+const APP_VERSION     = '2026.10.19d';
 const SCORE_GOAL      = 3.0;  // plant-wide monthly target (matches the 5S scorecard goal line)
 const OPP_THRESHOLD   = 3;    // an item scored below this counts as a 5S opportunity (plant standard)
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -2554,6 +2554,7 @@ function setScore(sec, idx, val, animate = true) {
   cell.bump  = bump ? bump.note : null;
   cell.paintToken = (cell.paintToken || 0) + 1;
   paintScore(sec, idx, cell, animate && !!bump);
+  if (TWO_MONTH_SECTIONS.has(sec)) refreshRollup(animate);
   recalcTotals();
 }
 
@@ -2612,7 +2613,9 @@ function twoMonthContext() {
 }
 
 function twoMonthBump(sec, idx, val) {
-  if (val !== 3 || !TWO_MONTH_SECTIONS.has(sec)) return null;
+  if (val !== 3) return null;
+  if (ROLLUP_SECTIONS.has(sec)) return rollupBump();
+  if (!TWO_MONTH_SECTIONS.has(sec)) return null;
   const ctx = twoMonthContext();
   if (!ctx) return null;
   const s = getPlantSections(activePlant, activeDept).find(x => x.key === sec);
@@ -2620,6 +2623,42 @@ function twoMonthBump(sec, idx, val) {
   const before = label === undefined ? undefined : ctx.byLabel[normLabel(label)];
   if (before === undefined || before < 3) return null;
   return { note: `${before} in ${monthAbbr(ctx.prev)} + 3 in ${monthAbbr(ctx.month)}` };
+}
+
+// Standardize & Sustain: an item scored 3 becomes a 4 only once EVERY Sort, Set in Place and Shine item
+// is 3 or better this month AND was 3 or better last month. Anything scored below 3 stays as scored.
+const ROLLUP_SECTIONS = new Set(['std', 'sus']);
+
+function rollupBump() {
+  const ctx = twoMonthContext();
+  if (!ctx) return null;
+  const core = getPlantSections(activePlant, activeDept).filter(sec => TWO_MONTH_SECTIONS.has(sec.key));
+  for (const sec of core) {
+    for (let i = 0; i < sec.items.length; i++) {
+      const cell = scores[`${sec.key}-${i}`];
+      if (!cell || cell.raw === null || cell.raw === undefined || cell.raw < 3) return null;   // not 3+ this month (or not scored yet)
+      const before = ctx.byLabel[normLabel(sec.items[i])];
+      if (before === undefined || before < 3) return null;                                       // not 3+ last month
+    }
+  }
+  return { note: `all Sort, Set in Place & Shine 3+ in ${monthAbbr(ctx.prev)} and ${monthAbbr(ctx.month)}` };
+}
+
+// A Sort / Set in Place / Shine score changed: Standardize & Sustain may roll up to 4 (or drop back to what was tapped)
+function refreshRollup(animate) {
+  Object.keys(scores).forEach(key => {
+    const m = key.match(/^(\w+)-(\d+)$/);
+    if (!m || !ROLLUP_SECTIONS.has(m[1])) return;
+    const cell = scores[key];
+    if (cell.raw === null || cell.raw === undefined) return;
+    const bump = twoMonthBump(m[1], Number(m[2]), cell.raw);
+    const note = bump ? bump.note : null;
+    if (note === (cell.bump || null)) return;
+    cell.score = bump ? 4 : cell.raw;
+    cell.bump  = note;
+    cell.paintToken = (cell.paintToken || 0) + 1;
+    paintScore(m[1], Number(m[2]), cell, animate && !!bump);
+  });
 }
 
 // Date changed (different month = different "last month"): re-check every scored item, no animation
