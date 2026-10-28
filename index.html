@@ -681,6 +681,8 @@ body {
   animation: pillIn .35s ease-out;
 }
 .bump-pill[hidden] { display: none; }
+.bump-pill.kept { background: #f1f5f9; border-color: #cbd5e1; color: #475569; padding-left: 11px; }
+.bump-pill.kept .bp-rule { color: #64748b; }
 .bump-pill .bp-arrow {
   display: inline-grid; place-items: center; width: 18px; height: 18px;
   border-radius: 50%; background: #16a34a; color: #fff; font-size: .7rem;
@@ -1146,7 +1148,8 @@ body {
         <div>
           <strong>How a 3 becomes a 4</strong>
           <p><b>Sort, Set in Place, Shine:</b> an item scored 3 this month that was 3 or better last month becomes a 4.</p>
-          <p><b>Standardize &amp; Sustain:</b> once <b>all</b> Sort, Set in Place and Shine items are 3 or better two months in a row, any Standardize or Sustain item scored 3 also becomes a 4. An item scored below 3 stays as scored.</p>
+          <p><b>Standardize &amp; Sustain:</b> once <b>every</b> Sort, Set in Place and Shine item is a 4 or higher (including 3s that became 4s), any Standardize or Sustain item scored 3 also becomes a 4. An item scored below 3 stays as scored.</p>
+          <p><b>To keep a 3:</b> tap the 3 again.</p>
         </div>
       </div>
     </div>
@@ -1779,7 +1782,7 @@ let dashMonth           = null;      // 'YYYY-MM' the dashboard is showing; null
 let histMonth           = null;      // 'YYYY-MM' | 'all' | null (= most recent month with audits)
 
 // Bump on every deploy — "Check for Update" compares this against the live copy.
-const APP_VERSION     = '2026.10.19d';
+const APP_VERSION     = '2026.10.28';
 const SCORE_GOAL      = 3.0;  // plant-wide monthly target (matches the 5S scorecard goal line)
 const OPP_THRESHOLD   = 3;    // an item scored below this counts as a 5S opportunity (plant standard)
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -2545,17 +2548,29 @@ function ensureCell(key) {
 }
 
 // raw  = what the auditor tapped; score = what counts (after the two-month rule)
+// animate = true means the auditor tapped it (false = loading a saved audit or re-checking after a date change)
 function setScore(sec, idx, val, animate = true) {
   const key  = `${sec}-${idx}`;
   const cell = ensureCell(key);
-  const bump = twoMonthBump(sec, idx, val);
+  if (animate) {
+    if (val === 3 && cell.raw === 3 && cell.bump) cell.keep3 = true;   // tapped the 3 again on a flipped item: keep it at 3
+    else if (val !== 3) cell.keep3 = false;                            // any other number clears the override
+  }
+  applyRule(sec, idx, cell, val);
+  cell.paintToken = (cell.paintToken || 0) + 1;
+  paintScore(sec, idx, cell, animate && !!cell.bump);
+  if (TWO_MONTH_SECTIONS.has(sec)) refreshRollup(animate);
+  recalcTotals();
+}
+
+// Sets raw / score / bump / kept on a cell from the tapped value, honouring a "keep at 3" override
+function applyRule(sec, idx, cell, val) {
+  const would = twoMonthBump(sec, idx, val);
+  const bump  = cell.keep3 ? null : would;
   cell.raw   = val;
   cell.score = bump ? 4 : val;
   cell.bump  = bump ? bump.note : null;
-  cell.paintToken = (cell.paintToken || 0) + 1;
-  paintScore(sec, idx, cell, animate && !!bump);
-  if (TWO_MONTH_SECTIONS.has(sec)) refreshRollup(animate);
-  recalcTotals();
+  cell.kept  = !!(cell.keep3 && would);
 }
 
 function paintScore(sec, idx, cell, animate) {
@@ -2568,9 +2583,14 @@ function paintScore(sec, idx, cell, animate) {
   });
   if (!cell.bump) {
     show(cell.score);
-    if (pill) { pill.hidden = true; pill.innerHTML = ''; }
+    if (pill) {
+      pill.classList.toggle('kept', !!cell.kept);
+      pill.innerHTML = cell.kept ? 'Kept at 3 <span class="bp-rule">· two-month rule not applied</span>' : '';
+      pill.hidden = !cell.kept;
+    }
     return;
   }
+  if (pill) pill.classList.remove('kept');
   const finish = () => {
     show(4, { 3: 'tapped-3', 4: animate ? 'bumped' : '' });
     if (pill) {
@@ -2626,22 +2646,21 @@ function twoMonthBump(sec, idx, val) {
 }
 
 // Standardize & Sustain: an item scored 3 becomes a 4 only once EVERY Sort, Set in Place and Shine item
-// is 3 or better this month AND was 3 or better last month. Anything scored below 3 stays as scored.
+// is already showing a 4 or higher (a 3 that flipped, or a 4/5 tapped). Anything scored below 3 stays as scored.
 const ROLLUP_SECTIONS = new Set(['std', 'sus']);
 
 function rollupBump() {
-  const ctx = twoMonthContext();
-  if (!ctx) return null;
+  const date = document.getElementById('f-date').value;
+  if (!activeDept || !date || date.slice(0, 7) < TWO_MONTH_RULE_START) return null;
   const core = getPlantSections(activePlant, activeDept).filter(sec => TWO_MONTH_SECTIONS.has(sec.key));
   for (const sec of core) {
     for (let i = 0; i < sec.items.length; i++) {
       const cell = scores[`${sec.key}-${i}`];
-      if (!cell || cell.raw === null || cell.raw === undefined || cell.raw < 3) return null;   // not 3+ this month (or not scored yet)
-      const before = ctx.byLabel[normLabel(sec.items[i])];
-      if (before === undefined || before < 3) return null;                                       // not 3+ last month
+      // every Sort / Set in Place / Shine item must already be showing a 4 or higher (a 3 that flipped, or a 4/5)
+      if (!cell || cell.score === null || cell.score === undefined || cell.score < 4) return null;
     }
   }
-  return { note: `all Sort, Set in Place & Shine 3+ in ${monthAbbr(ctx.prev)} and ${monthAbbr(ctx.month)}` };
+  return { note: 'all Sort, Set in Place & Shine at 4+' };
 }
 
 // A Sort / Set in Place / Shine score changed: Standardize & Sustain may roll up to 4 (or drop back to what was tapped)
@@ -2651,13 +2670,11 @@ function refreshRollup(animate) {
     if (!m || !ROLLUP_SECTIONS.has(m[1])) return;
     const cell = scores[key];
     if (cell.raw === null || cell.raw === undefined) return;
-    const bump = twoMonthBump(m[1], Number(m[2]), cell.raw);
-    const note = bump ? bump.note : null;
-    if (note === (cell.bump || null)) return;
-    cell.score = bump ? 4 : cell.raw;
-    cell.bump  = note;
+    const before = `${cell.bump || ''}|${cell.kept}`;
+    applyRule(m[1], Number(m[2]), cell, cell.raw);
+    if (`${cell.bump || ''}|${cell.kept}` === before) return;
     cell.paintToken = (cell.paintToken || 0) + 1;
-    paintScore(m[1], Number(m[2]), cell, animate && !!bump);
+    paintScore(m[1], Number(m[2]), cell, animate && !!cell.bump);
   });
 }
 
@@ -2669,6 +2686,8 @@ function reapplyTwoMonthRule() {
     if (!m || cell.raw === undefined || cell.raw === null) return;
     setScore(m[1], Number(m[2]), cell.raw, false);
   });
+  refreshRollup(false);
+  recalcTotals();
 }
 
 function updateRemarks(sec, idx, val) {
@@ -2810,6 +2829,8 @@ function saveAudit() {
       maxTotal += 5;
       const it = { label, score: s.score, raw: s.raw !== undefined ? s.raw : s.score, remarks: s.remarks, photos: s.photos || [] };
       if (s.bump) it.bump = s.bump;
+      if (s.keep3) it.keep3 = true;
+      if (s.kept) it.kept = true;
       return it;
     });
     return { key: sec.key, label: sec.label, items };
@@ -2979,7 +3000,7 @@ function buildAuditSheet(ws, a, opts = {}) {
       const ie = bc(ws.getCell(`E${r}`));
       ie.value     = (item.score !== null && item.score !== undefined) ? item.score : null;
       ie.alignment = { horizontal: 'center' };
-      const why = item.bump ? `Scored 3 → 4 (two-month rule: ${item.bump})` : '';
+      const why = item.bump ? `Scored 3 → 4 (two-month rule: ${item.bump})` : item.kept ? 'Kept at 3 (two-month rule not applied)' : '';
       bc(ws.getCell(`F${r}`)).value = [item.remarks, why].filter(Boolean).join(' · ') || null;
       ws.getRow(r).height = 15; r++;
     });
@@ -3033,7 +3054,7 @@ function buildAuditSheet(ws, a, opts = {}) {
     [3, 'Meets Expectations', '5S elements in place. Area is organized and clean, but not fully standardized.'],
     [4, 'Good',               'Area is well-organized, clean, and mostly standardized. Some minor improvements needed.'],
     ['', '',                  'Sort, Set in Place, Shine: an item scored 3 this month that was 3 or better last month becomes a 4.'],
-    ['', '',                  'Standardize & Sustain: once ALL Sort, Set in Place and Shine items are 3 or better two months in a row,'],
+    ['', '',                  'Standardize & Sustain: once EVERY Sort, Set in Place and Shine item is a 4 or higher (3s that became 4s count),'],
     ['', '',                  'any Standardize or Sustain item scored 3 also becomes a 4. (An item scored below 3 stays as scored.)'],
     [5, 'Excellent',          'Full 5S implementation. Area is neat, clean, standardized, and practices are sustained.'],
   ].forEach(([num, lbl, desc]) => {
@@ -3106,6 +3127,8 @@ async function exportCurrent() {
       maxTotal += 5;
       const it = { label, score: s.score, raw: s.raw !== undefined ? s.raw : s.score, remarks: s.remarks, photos: s.photos || [] };
       if (s.bump) it.bump = s.bump;
+      if (s.keep3) it.keep3 = true;
+      if (s.kept) it.kept = true;
       return it;
     });
     return { key: sec.key, label: sec.label, items };
@@ -3814,6 +3837,7 @@ function loadAudit(id) {
         const [key, idx] = at;
         try {  // an imported audit from an older checklist may not line up: skip that line, keep going
           const tapped = item.raw !== undefined && item.raw !== null ? item.raw : item.score;
+          if (item.keep3) ensureCell(`${key}-${idx}`).keep3 = true;
           if (tapped !== null && tapped !== undefined) {
             setScore(key, idx, tapped, false);
           }
@@ -3828,6 +3852,8 @@ function loadAudit(id) {
         } catch (e) { /* no matching row on screen */ }
       });
     });
+    refreshRollup(false);
+    recalcTotals();
     document.getElementById('export-row').style.display    = 'flex';
     document.getElementById('new-audit-row').style.display = 'flex';
     window.scrollTo({ top: 0, behavior: 'smooth' });
