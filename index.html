@@ -1521,14 +1521,14 @@ const PLANT_DATA = {
     colWidths:   FORM_COL_WIDTHS,
     burnDepts:   P2_BURN_DEPTS,
     deptGroups: [
-      { label:'Standard', depts:['Shipping','Assembly','Maintenance','Saw','Press and Strip Tables','Continuous Improvement','Machine Shop','Install','Kitting'] },
+      { label:'Standard', depts:['Shipping','Thumb Assembly','Maintenance','Saw','Press and Strip Tables','Machine Shop','Install','Kitting'] },
       { label:'Weld',     depts:['Couplers','Thumbs','QH Bucket','Pin On Bucket','Specialty Bucket','Cobot'] },
       { label:'Paint',    depts:['Paint'] },
       { label:'Burn Bay', depts:['Burn Bay 1','Burn Bay 2','Burn Bay 3'] },
     ],
     getSections: p2GetSections,
     checklistTypes: [
-      { key:'std',   label:'Standard area (like Shipping, Assembly)' },
+      { key:'std',   label:'Standard area (like Shipping, Thumb Assembly)' },
       { key:'weld',  label:'Weld / Fabrication (like Couplers, Thumbs)' },
       { key:'paint', label:'Paint' },
       { key:'burn',  label:'Burn Bay / Laser' },
@@ -1544,7 +1544,7 @@ const PLANT_DATA = {
     deptGroups: [
       { label:'Weld / Fabrication', depts:['Large Bucket 1','Large Bucket 2','Large Thumbs','Custom Fab','CTL','WL Couplers','Bushing Inst & Weld','Weld'] },
       { label:'Burn Bay', depts:['Burn Bay 1','Burn Bay 2','Burn Bay 3'] },
-      { label:'Standard', depts:['Continuous Improvement','Assembly','Machine Shop','Saw','Maintenance','Shipping'] },
+      { label:'Standard', depts:['Assembly','Machine Shop','Saw','Maintenance','Shipping'] },
       { label:'Paint',    depts:['Paint'] },
     ],
     getSections: p1GetSections,
@@ -1782,7 +1782,7 @@ let dashMonth           = null;      // 'YYYY-MM' the dashboard is showing; null
 let histMonth           = null;      // 'YYYY-MM' | 'all' | null (= most recent month with audits)
 
 // Bump on every deploy — "Check for Update" compares this against the live copy.
-const APP_VERSION     = '2026.10.29';
+const APP_VERSION     = '2026.10.29b';
 const SCORE_GOAL      = 3.0;  // plant-wide monthly target (matches the 5S scorecard goal line)
 const OPP_THRESHOLD   = 3;    // an item scored below this counts as a 5S opportunity (plant standard)
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -1809,6 +1809,7 @@ const MONTH_FULL = ['January','February','March','April','May','June','July','Au
 (function init() {
   document.getElementById('f-date').addEventListener('change', () => reapplyTwoMonthRule());
   mergeWeldDepts();
+  renameP2Assembly();
   setFormDateTimeToNow();
   applyPlantUI();
   renderDashboard();
@@ -3252,7 +3253,7 @@ const HOSHIN_BLOCKS = [
     ['Install', 'p2', 'Install'], ['Kitting', 'p2', 'Kitting'], ['Pin On Bucket', 'p2', 'Pin On Bucket'],
     ['QC Bucket', 'p2', 'QH Bucket'], ['Specialty Bucket', 'p2', 'Specialty Bucket'], ['Machine Shop', 'p2', 'Machine Shop'],
     ['Saw', 'p2', 'Saw'], ['Quality (N/A)', 'p2', null], ['Sm. Thumbs', 'p2', 'Thumbs'], ['Paint', 'p2', 'Paint'],
-    ['Couplers', 'p2', 'Couplers'], ['Assembly', 'p2', 'Assembly'], ['Cobot', 'p2', 'Cobot'],
+    ['Couplers', 'p2', 'Couplers'], ['Assembly', 'p2', 'Thumb Assembly'], ['Cobot', 'p2', 'Cobot'],
   ] },
   { title: 'Maintenance', firstRow: 94, rows: [['Plant 1 Maintenance', 'p1', 'Maintenance'], ['Plant 2 Maintenance', 'p2', 'Maintenance']] },
   { title: 'Shipping',    firstRow: 101, rows: [['Plant 1 Shipping', 'p1', 'Shipping'], ['Plant 2 Shipping', 'p2', 'Shipping']] },
@@ -3533,7 +3534,7 @@ function buildHoshinNotesSheet(wb, { monthKey, m, col, data }) {
   gap();
 
   head('NOT COVERED — DO BY HAND');
-  line('Departments the app audits that have no row on the 5S tab (for example Continuous Improvement) are not exported.');
+  line('Departments the app audits that have no row on the 5S tab are not exported.');
   line(`The Plan/Do/Check/Act write-up table is typed by hand. Use the "All items below ${OPP_THRESHOLD}" tab to see which items and departments to write up.`);
   line(`Other tabs do not pull from this file. 2026 Bowler (5S Score, Act row 16, ${mon} = column ${String.fromCharCode(74 + m)}) and GLOBAL SAFETY-Data (rows 31 and 32, ${mon} = column ${String.fromCharCode(65 + m)}) are typed cells. Check the cell before typing, because those tabs can change. Global score for ${mon}: ${data.global === null ? 'n/a' : data.global.toFixed(2)}.`);
   gap();
@@ -3557,6 +3558,23 @@ function mergeWeldDepts() {
     let n = 0;
     list.forEach(a => { if (a.dept === 'Weld 1' || a.dept === 'Weld 2') { a.dept = 'Weld'; n++; } });
     if (n) localStorage.setItem(key, JSON.stringify(list));
+    localStorage.setItem(FLAG, '1');
+  } catch (e) { /* storage unavailable: try again next launch */ }
+}
+
+// Plant 2's "Assembly" is really "Thumb Assembly": rename saved audits once
+function renameP2Assembly() {
+  const FLAG = 'tag5s-p2-thumb-assembly-v1';
+  try {
+    if (localStorage.getItem(FLAG)) return;
+    const key = PLANT_DATA.p2.storageKey;
+    const list = JSON.parse(localStorage.getItem(key) || '[]');
+    let n = 0;
+    list.forEach(a => { if (a.dept === 'Assembly') { a.dept = 'Thumb Assembly'; n++; } });
+    if (n) localStorage.setItem(key, JSON.stringify(list));
+    // a "Thumb Assembly" added on the floor is now built in: don't list it twice
+    const custom = getCustomDepts('p2');
+    if (custom.some(d => d.name === 'Thumb Assembly')) saveCustomDepts('p2', custom.filter(d => d.name !== 'Thumb Assembly'));
     localStorage.setItem(FLAG, '1');
   } catch (e) { /* storage unavailable: try again next launch */ }
 }
