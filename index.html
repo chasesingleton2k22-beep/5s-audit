@@ -1782,7 +1782,7 @@ let dashMonth           = null;      // 'YYYY-MM' the dashboard is showing; null
 let histMonth           = null;      // 'YYYY-MM' | 'all' | null (= most recent month with audits)
 
 // Bump on every deploy — "Check for Update" compares this against the live copy.
-const APP_VERSION     = '2026.10.28';
+const APP_VERSION     = '2026.10.29';
 const SCORE_GOAL      = 3.0;  // plant-wide monthly target (matches the 5S scorecard goal line)
 const OPP_THRESHOLD   = 3;    // an item scored below this counts as a 5S opportunity (plant standard)
 const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -3561,20 +3561,25 @@ function mergeWeldDepts() {
   } catch (e) { /* storage unavailable: try again next launch */ }
 }
 
+// Plant 2: March–July 2026. Plant 1: September 2026 (last month for October's two-month rule).
 async function loadPastAuditSeed() {
-  const FLAG = 'tag5s-past-seed-p2-v1';
+  await seedPastAudits('p2', './past-audits-p2.json', 'tag5s-past-seed-p2-v1');
+  await seedPastAudits('p1', './past-audits-p1.json', 'tag5s-past-seed-p1-v1');
+}
+
+async function seedPastAudits(plant, file, FLAG) {
   try {
     if (localStorage.getItem(FLAG)) return;
-    const res = await fetch('./past-audits-p2.json', { cache: 'no-store' });
+    const res = await fetch(file, { cache: 'no-store' });
     if (!res.ok) return;
     const seed = await res.json();
-    const key = PLANT_DATA.p2.storageKey;
+    const key = PLANT_DATA[plant].storageKey;
     const raw = JSON.parse(localStorage.getItem(key) || '[]');
     const have = new Set(raw.map(a => `${a.dept}|${auditMonth(a)}`));
     const fresh = [];
     seed.forEach(s => {
       if (have.has(`${s.dept}|${s.period}`)) return;
-      const appSecs = getPlantSections('p2', s.dept);
+      const appSecs = getPlantSections(plant, s.dept);
       let total = 0, max = 0;
       const sections = s.sections.map((sec, si) => {
         const items = sec.items.map(([label, score, remarks]) => {
@@ -3587,8 +3592,8 @@ async function loadPastAuditSeed() {
         return { key: same ? app.key : `imp${si}`, label: same ? app.label : sec.label, items };
       });
       fresh.push({
-        id: `past-p2-${s.period}-${s.dept}`.replace(/\s+/g, '_'),
-        plant: 'p2', dept: s.dept, auditor: s.auditor, date: s.date, time: s.time,
+        id: `past-${plant}-${s.period}-${s.dept}`.replace(/\s+/g, '_'),
+        plant, dept: s.dept, auditor: s.auditor, date: s.date, time: s.time,
         period: s.period, imported: true, sections, total, max, savedAt: new Date().toISOString(),
       });
     });
